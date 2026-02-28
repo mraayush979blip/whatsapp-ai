@@ -70,7 +70,14 @@ export default function Home() {
                 {!session ? (
                     <LoginScreen />
                 ) : selectedChat ? (
-                    <ChatInterface bot={selectedChat} onBack={() => setSelectedChat(null)} />
+                    <ChatInterface
+                        bot={selectedChat}
+                        onBack={() => setSelectedChat(null)}
+                        onBotDeleted={() => {
+                            setSelectedChat(null);
+                            // The ChatList will automatically refresh because it fetches on mount
+                        }}
+                    />
                 ) : (
                     <ChatList userId={session.user.id} onSelectChat={(bot) => setSelectedChat(bot)} />
                 )}

@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Phone, Video, MoreVertical, ChevronLeft, Smile, Paperclip } from "lucide-react";
+import { Send, Phone, Video, MoreVertical, ChevronLeft, Smile, Paperclip, Mic, Camera } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import BotProfileModal from "./BotProfileModal";
 
 interface Message {
     role: "user" | "bot";
     content: string;
     time: string;
+    type?: "text" | "image" | "audio";
+    media_url?: string;
 }
 
 interface ChatInterfaceProps {
@@ -23,13 +26,15 @@ interface ChatInterfaceProps {
         mood_level: number;
     };
     onBack: () => void;
+    onBotDeleted: () => void;
 }
 
-export default function ChatInterface({ bot, onBack }: ChatInterfaceProps) {
+export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -227,22 +232,43 @@ export default function ChatInterface({ bot, onBack }: ChatInterfaceProps) {
         }
     };
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Dev check: Bucket check
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        alert("Media Sharing: Developer is setting up the 'gapshap_media' bucket. You can buy a coffee to help him finish this faster! ☕💸");
+        // Logic for uploading will go here once user confirms bucket creation
+    };
+
     return (
         <div className="flex flex-col h-full relative bg-[#E5DDD5] overflow-hidden" onClick={() => showMenu && setShowMenu(false)}>
-            {/* Header Container */}
+            {/* Header Area */}
             <div className="bg-[#075E54] text-white px-3 py-2 flex items-center shadow-md z-30">
                 <button onClick={onBack} className="flex items-center active:bg-[#ffffff22] rounded-full p-1 -ml-1 transition-colors">
                     <ChevronLeft className="w-6 h-6 mr-1" />
+                </button>
+
+                <button
+                    onClick={() => setShowProfile(true)}
+                    className="flex-1 flex items-center overflow-hidden hover:bg-[#ffffff11] p-1 rounded-lg transition-colors cursor-pointer"
+                >
                     <div className="w-9 h-9 rounded-full bg-gray-300 mr-2 flex-shrink-0 relative overflow-hidden">
                         <img src={bot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                     </div>
+                    <div className="flex-1 overflow-hidden text-left">
+                        <h2 className="text-[16px] font-semibold truncate leading-tight">{bot.name}</h2>
+                        <p className="text-[11px] leading-tight text-[#f1f1f1cc]">
+                            {isTyping ? "typing..." : "online"}
+                        </p>
+                    </div>
                 </button>
-                <div className="flex-1 overflow-hidden">
-                    <h2 className="text-[16px] font-semibold truncate leading-tight">{bot.name}</h2>
-                    <p className="text-[11px] leading-tight text-[#f1f1f1cc]">
-                        {isTyping ? "typing..." : "online"}
-                    </p>
-                </div>
+
                 <div className="flex space-x-4 items-center pl-2 relative">
                     <button onClick={handleCallAlert} className="active:scale-95"><Video className="w-5 h-5 fill-white" /></button>
                     <button onClick={handleCallAlert} className="active:scale-95"><Phone className="w-5 h-5 fill-white" /></button>
@@ -335,18 +361,44 @@ export default function ChatInterface({ bot, onBack }: ChatInterfaceProps) {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                     />
-                    <Paperclip className="w-6 h-6 text-gray-400 rotate-[-45deg]" />
+                    <button onClick={() => fileInputRef.current?.click()}>
+                        <Paperclip className="w-5 h-5 text-gray-500 rotate-[-45deg] mx-1" />
+                    </button>
+                    <button onClick={() => fileInputRef.current?.click()}>
+                        <Camera className="w-5 h-5 text-gray-500 mx-1" />
+                    </button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        accept="image/*"
+                    />
                 </div>
                 <button
-                    onClick={handleSendMessage}
-                    className="w-11 h-11 bg-[#075E54] rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform"
+                    onClick={input.trim() ? handleSendMessage : () => alert("Voice Note: Dev is working on it! ☕💸")}
+                    className="w-12 h-12 bg-[#00a884] rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform"
                 >
-                    <Send className="w-5 h-5 text-white ml-0.5" />
+                    {input.trim() ? (
+                        <Send className="w-6 h-6 text-white ml-0.5" />
+                    ) : (
+                        <Mic className="w-6 h-6 text-white" />
+                    )}
                 </button>
             </div>
 
             {/* Background Decorator */}
             <div className="absolute inset-0 chat-bg opacity-[0.05] pointer-events-none" />
+            {/* Profile Modal */}
+            <AnimatePresence>
+                {showProfile && (
+                    <BotProfileModal
+                        bot={bot}
+                        onClose={() => setShowProfile(false)}
+                        onDelete={onBotDeleted}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

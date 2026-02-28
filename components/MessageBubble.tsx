@@ -6,6 +6,8 @@ interface Message {
     role: "user" | "bot";
     content: string;
     time: string;
+    type?: "text" | "image" | "audio";
+    media_url?: string;
 }
 
 export default function MessageBubble({ message }: { message: Message }) {
@@ -19,12 +21,24 @@ export default function MessageBubble({ message }: { message: Message }) {
         >
             <div
                 className={`relative max-w-[85%] px-3 py-1.5 rounded-lg shadow-sm text-sm ${isUser
-                        ? "bg-[#DCF8C6] rounded-tr-none text-[#1F1F1F]"
-                        : "bg-white rounded-tl-none text-[#1F1F1F]"
+                    ? "bg-[#DCF8C6] rounded-tr-none text-[#1F1F1F]"
+                    : "bg-white rounded-tl-none text-[#1F1F1F]"
                     }`}
             >
-                <p className="whitespace-pre-wrap leading-tight">{message.content}</p>
-                <div className="flex justify-end items-center mt-0.5 space-x-1">
+                {message.type === "image" ? (
+                    <div className="mb-1 rounded-lg overflow-hidden border border-gray-100">
+                        <img src={message.media_url} alt="Shared photo" className="max-w-full h-auto object-cover max-h-[300px]" />
+                    </div>
+                ) : message.type === "audio" ? (
+                    <div className="mb-1 py-1">
+                        <audio controls className="h-8 max-w-[200px]">
+                            <source src={message.media_url} type="audio/mpeg" />
+                        </audio>
+                    </div>
+                ) : (
+                    <p className="whitespace-pre-wrap leading-tight font-[14.5px]">{message.content}</p>
+                )}
+                <div className="flex justify-end items-center mt-1 space-x-1">
                     <span className="text-[10px] text-[#8C8C8C] leading-none uppercase">
                         {message.time}
                     </span>
@@ -44,8 +58,8 @@ export default function MessageBubble({ message }: { message: Message }) {
                 {/* Tail positioning */}
                 <div
                     className={`absolute top-0 w-2 h-2 ${isUser
-                            ? "-right-1.5 bg-[#DCF8C6] [clip-path:polygon(0_0,0_100%,100%_0)]"
-                            : "-left-1.5 bg-white [clip-path:polygon(100%_0,100%_100%,0_0)]"
+                        ? "-right-1.5 bg-[#DCF8C6] [clip-path:polygon(0_0,0_100%,100%_0)]"
+                        : "-left-1.5 bg-white [clip-path:polygon(100%_0,100%_100%,0_0)]"
                         }`}
                 />
             </div>
