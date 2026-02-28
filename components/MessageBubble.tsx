@@ -21,8 +21,8 @@ export default function MessageBubble({ message }: { message: Message }) {
         >
             <div
                 className={`relative max-w-[85%] px-3 py-1.5 rounded-lg shadow-sm text-sm ${isUser
-                    ? "bg-[#DCF8C6] rounded-tr-none text-[#1F1F1F]"
-                    : "bg-white rounded-tl-none text-[#1F1F1F]"
+                    ? "bg-[#E7FFDB] rounded-tr-none text-[#111b21]"
+                    : "bg-white rounded-tl-none text-[#111b21]"
                     }`}
             >
                 {message.type === "image" ? (
@@ -58,7 +58,7 @@ export default function MessageBubble({ message }: { message: Message }) {
                 {/* Tail positioning */}
                 <div
                     className={`absolute top-0 w-2 h-2 ${isUser
-                        ? "-right-1.5 bg-[#DCF8C6] [clip-path:polygon(0_0,0_100%,100%_0)]"
+                        ? "-right-1.5 bg-[#E7FFDB] [clip-path:polygon(0_0,0_100%,100%_0)]"
                         : "-left-1.5 bg-white [clip-path:polygon(100%_0,100%_100%,0_0)]"
                         }`}
                 />

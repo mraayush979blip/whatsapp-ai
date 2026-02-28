@@ -53,24 +53,24 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* WhatsApp Header */}
-            <div className="bg-[#075E54] text-white p-4 pb-0 z-10 shadow-md">
+            <div className="bg-[#008069] text-white p-4 pb-0 z-10 shadow-md">
                 <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-xl font-bold">WhatsApp</h1>
+                    <h1 className="text-xl font-bold tracking-tight">WhatsApp</h1>
                     <div className="flex items-center space-x-5">
-                        <Search className="w-5 h-5 opacity-80" />
+                        <Search className="w-5 h-5 opacity-90" />
                         <button onClick={() => supabase.auth.signOut()} title="Logout">
-                            <LogOut className="w-5 h-5 opacity-80" />
+                            <LogOut className="w-5 h-5 opacity-90" />
                         </button>
-                        <MoreVertical className="w-5 h-5 opacity-80" />
+                        <MoreVertical className="w-5 h-5 opacity-90" />
                     </div>
                 </div>
 
                 {/* WhatsApp Tabs Mockup */}
-                <div className="flex text-center uppercase text-[13px] font-bold tracking-wider opacity-90 cursor-pointer">
-                    <div className="w-[10%] pb-2 flex justify-center border-b-2 border-white"><MessageSquare className="w-5 h-5" /></div>
-                    <div className="w-[30%] pb-2 border-b-2 border-white">CHATS</div>
+                <div className="flex text-center uppercase text-[13.5px] font-bold tracking-wider opacity-90 cursor-pointer">
+                    <div className="w-[10%] pb-2.5 flex justify-center border-b-3 border-white/40"><MessageSquare className="w-5 h-5" /></div>
+                    <div className="w-[30%] pb-2.5 border-b-3 border-white">CHATS</div>
                     <div
-                        className="w-[30%] pb-2 hover:bg-[#ffffff11] transition-colors"
+                        className="w-[30%] pb-2.5 hover:bg-[#ffffff11] transition-colors"
                         onClick={() => {
                             const wantFeature = confirm("Status Feature: Developer Aayush is setting up the storytelling system. 📖✨ Want to request this feature faster? Click OK to email him! 😂🙌");
                             if (wantFeature) window.open("mailto:mraayush979@gmail.com?subject=Feature Request: GapShap Status");
@@ -79,7 +79,7 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
                         STATUS
                     </div>
                     <div
-                        className="w-[30%] pb-2 hover:bg-[#ffffff11] transition-colors"
+                        className="w-[30%] pb-2.5 hover:bg-[#ffffff11] transition-colors"
                         onClick={() => {
                             const wantFeature = confirm("Calls Feature: AI Voice calls are in the works! 🎙️🤖 Want to request this feature faster? Click OK to email him! 😂🙌");
                             if (wantFeature) window.open("mailto:mraayush979@gmail.com?subject=Feature Request: GapShap AI Calls");
@@ -91,45 +91,51 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
             </div>
 
             {/* Bots List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto bg-white">
                 {error ? (
                     <div className="p-10 text-center">
                         <div className="text-red-500 font-bold mb-2">Error! ❌</div>
                         <p className="text-sm text-gray-600 mb-4">{error}</p>
                         <button
                             onClick={fetchBots}
-                            className="bg-[#075E54] text-white px-4 py-2 rounded-lg text-sm font-semibold active:scale-95 transition-transform"
+                            className="bg-[#008069] text-white px-4 py-2 rounded-lg text-sm font-semibold active:scale-95 transition-transform"
                         >
                             Try Again
                         </button>
                     </div>
                 ) : loading ? (
-                    <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-[#075E54] border-t-transparent rounded-full animate-spin" /></div>
+                    <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-[#008069] border-t-transparent rounded-full animate-spin" /></div>
                 ) : (
                     <div className="divide-y divide-gray-100">
                         {bots.length === 0 && (
                             <div className="p-10 text-center text-gray-400">
-                                <p>Abhi tak koi dost nahi bana bhiya 😂</p>
-                                <p className="text-sm mt-1">Niche (+) wale button pe click karo!</p>
+                                <p className="text-[17px] font-medium text-gray-600">No chats yet 😂</p>
+                                <p className="text-sm mt-2 leading-relaxed">Niche (+) wale green button pe click karke dost banao bhiya!</p>
                             </div>
                         )}
                         {bots.map((bot) => (
                             <motion.div
                                 key={bot.id}
-                                whileHover={{ backgroundColor: "#f9f9f9" }}
-                                whileTap={{ scale: 0.98 }}
+                                whileTap={{ backgroundColor: "#f0f2f5" }}
                                 onClick={() => onSelectChat(bot)}
-                                className="flex items-center p-3 cursor-pointer transition-colors"
+                                className="flex items-center px-4 py-3.5 cursor-pointer relative hover:bg-gray-50/80 transition-colors"
                             >
-                                <div className="w-14 h-14 rounded-full bg-gray-200 mr-3 flex-shrink-0 relative">
+                                <div className="w-[52px] h-[52px] rounded-full bg-gray-200 mr-4 flex-shrink-0 relative border-[0.5px] border-gray-100 shadow-sm">
                                     <img src={bot.avatar_url} alt={bot.name} className="w-full h-full object-cover rounded-full" />
                                 </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <div className="flex justify-between items-center pr-1">
-                                        <h3 className="font-bold text-[16px] text-gray-900 truncate">{bot.name}</h3>
-                                        <span className="text-[11px] text-gray-400">12:34 PM</span>
+                                <div className="flex-1 overflow-hidden border-b border-gray-50 pb-0.5">
+                                    <div className="flex justify-between items-center mb-0.5">
+                                        <h3 className="font-bold text-[16.5px] text-[#111b21] truncate">{bot.name}</h3>
+                                        <span className="text-[11.5px] text-[#667781] font-medium">12:34 PM</span>
                                     </div>
-                                    <p className="text-[13px] text-gray-500 truncate">{bot.role} - Click to chat</p>
+                                    <div className="flex justify-between items-center pr-1">
+                                        <p className="text-[14px] text-[#667781] truncate pr-2">
+                                            {bot.role}: Click to start GapShap...
+                                        </p>
+                                        <div className="w-5 h-5 bg-[#25D366] rounded-full flex items-center justify-center text-[10px] text-white font-bold animate-pulse">
+                                            1
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}

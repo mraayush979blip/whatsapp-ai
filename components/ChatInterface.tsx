@@ -249,29 +249,29 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     return (
         <div className="flex flex-col h-full relative bg-[#E5DDD5] overflow-hidden" onClick={() => showMenu && setShowMenu(false)}>
             {/* Header Area */}
-            <div className="bg-[#075E54] text-white px-3 py-2 flex items-center shadow-md z-30">
+            <div className="bg-[#008069] text-white px-3 py-2 flex items-center shadow-md z-30 min-h-[56px]">
                 <button onClick={onBack} className="flex items-center active:bg-[#ffffff22] rounded-full p-1 -ml-1 transition-colors">
-                    <ChevronLeft className="w-6 h-6 mr-1" />
+                    <ChevronLeft className="w-7 h-7 -mr-0.5" />
                 </button>
 
                 <button
                     onClick={() => setShowProfile(true)}
                     className="flex-1 flex items-center overflow-hidden hover:bg-[#ffffff11] p-1 rounded-lg transition-colors cursor-pointer"
                 >
-                    <div className="w-9 h-9 rounded-full bg-gray-300 mr-2 flex-shrink-0 relative overflow-hidden">
+                    <div className="w-[38px] h-[38px] rounded-full bg-gray-300 mr-2.5 flex-shrink-0 relative overflow-hidden border-[0.5px] border-white/20">
                         <img src={bot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 overflow-hidden text-left">
-                        <h2 className="text-[16px] font-semibold truncate leading-tight">{bot.name}</h2>
-                        <p className="text-[11px] leading-tight text-[#f1f1f1cc]">
+                        <h2 className="text-[15.5px] font-bold truncate leading-tight tracking-tight">{bot.name}</h2>
+                        <p className="text-[11.5px] leading-tight text-[#f1f1f1cc] mt-0.5 font-medium">
                             {isTyping ? "typing..." : "online"}
                         </p>
                     </div>
                 </button>
 
-                <div className="flex space-x-4 items-center pl-2 relative">
-                    <button onClick={handleCallAlert} className="active:scale-95"><Video className="w-5 h-5 fill-white" /></button>
-                    <button onClick={handleCallAlert} className="active:scale-95"><Phone className="w-5 h-5 fill-white" /></button>
+                <div className="flex space-x-4 items-center pl-2 relative pr-1">
+                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform"><Video className="w-[20px] h-[20px] fill-white" /></button>
+                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white" /></button>
 
                     <div className="relative">
                         <button
@@ -282,7 +282,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             className="hover:bg-[#ffffff22] p-1.5 rounded-full transition-colors active:scale-90"
                             title="Menu"
                         >
-                            <MoreVertical className="w-5 h-5" />
+                            <MoreVertical className="w-[22px] h-[22px]" />
                         </button>
 
                         {/* Dropdown Menu */}

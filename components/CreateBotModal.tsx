@@ -14,11 +14,11 @@ export default function CreateBotModal({ onClose, onCreated, userId }: CreateBot
     const [name, setName] = useState("");
     const [role, setRole] = useState("");
     const [specs, setSpecs] = useState("");
-    const [avatar, setAvatar] = useState("😎"); // Default emoji
+    const [avatar, setAvatar] = useState("🥰"); // Default emoji
     const [mood, setMood] = useState(50); // 0 = Very Chill, 100 = Very Serious
     const [loading, setLoading] = useState(false);
 
-    const emojis = ["😎", "🤖", "👻", "🦄", "🧸"];
+    const emojis = ["🥰", "😎", "🤝", "🔥", "😇"];
 
     const handleCreate = async () => {
         if (!name || !role) return alert("Bhiya, naam aur role toh likho!");

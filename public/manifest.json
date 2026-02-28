@@ -1,0 +1,21 @@
+{
+    "name": "GapShap AI",
+    "short_name": "GapShap",
+    "description": "Indore ka sabse shana chatbot! 😂",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#008069",
+    "theme_color": "#008069",
+    "icons": [
+        {
+            "src": "https://ui-avatars.com/api/?background=008069&color=fff&name=GS&size=192",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "https://ui-avatars.com/api/?background=008069&color=fff&name=GS&size=512",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
