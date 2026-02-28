@@ -8,7 +8,7 @@ export function createClient() {
     // This stops mobile carriers from seeing the blocked .supabase.co domain
     const isBrowser = typeof window !== 'undefined';
     const finalUrl = isBrowser
-        ? `${window.location.origin}/supabase-api`
+        ? `${window.location.origin}/supabase`
         : process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
     return createBrowserClient(

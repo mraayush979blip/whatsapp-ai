@@ -28,16 +28,8 @@ const nextConfig = {
     async rewrites() {
         return [
             {
-                source: '/supabase-auth/:path*',
-                destination: 'https://gxelbvvgkpmgfudukxrf.supabase.co/auth/v1/:path*',
-            },
-            {
-                source: '/supabase-api/:path*',
-                destination: 'https://gxelbvvgkpmgfudukxrf.supabase.co/rest/v1/:path*',
-            },
-            {
-                source: '/supabase-storage/:path*',
-                destination: 'https://gxelbvvgkpmgfudukxrf.supabase.co/storage/v1/:path*',
+                source: '/supabase/:path*',
+                destination: 'https://gxelbvvgkpmgfudukxrf.supabase.co/:path*',
             },
         ]
     },

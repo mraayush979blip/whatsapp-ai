@@ -25,11 +25,11 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/?error=no_auth_url`);
     }
 
-    // 🔥 MOBILE DATA FIX: Replace Supabase URL with our own Proxied URL
+    // 🔥 MOBILE DATA FIX: Replace Supabase Host with our own Proxied Path
     // This stops the browser from trying to talk to blocked .supabase.co domains
     const proxiedUrl = data.url.replace(
-        'https://gxelbvvgkpmgfudukxrf.supabase.co/auth/v1',
-        `${origin}/supabase-auth`
+        'https://gxelbvvgkpmgfudukxrf.supabase.co',
+        `${origin}/supabase`
     );
 
     // Redirect the user to the Proxied Authorization URL
