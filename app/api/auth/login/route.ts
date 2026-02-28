@@ -25,11 +25,10 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/?error=no_auth_url`);
     }
 
-    // 🔥 GLOBAL MOBILE DATA FIX: Replace ALL instances of Supabase Host with our own Proxied Path
-    // We use a regex with /g to ensure 'redirect_uri' and other params are also proxied!
+    // 🔥 GLOBAL CARRIER BYPASS: Mask ALL mentions of Supabase with /safe-api
     const supabaseHost = 'gxelbvvgkpmgfudukxrf.supabase.co';
-    const proxiedUrl = data.url.replace(new RegExp(supabaseHost, 'g'), `${new URL(origin).host}/supabase`);
+    const proxiedUrl = data.url.replace(new RegExp(supabaseHost, 'g'), `${new URL(origin).host}/safe-api`);
 
-    // Redirect the user to the fully Proxied Google URL
+    // Redirect the user to the fully Masked Google URL
     return NextResponse.redirect(proxiedUrl);
 }

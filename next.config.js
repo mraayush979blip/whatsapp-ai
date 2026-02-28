@@ -30,7 +30,7 @@ const nextConfig = {
     async rewrites() {
         return [
             {
-                source: '/supabase/:path*',
+                source: '/safe-api/:path*',
                 destination: 'https://gxelbvvgkpmgfudukxrf.supabase.co/:path*',
             },
         ]
