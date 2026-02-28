@@ -38,7 +38,7 @@ export default function LoginScreen() {
                 </p>
 
                 <a
-                    href="/api/auth/login"
+                    href={`/api/auth/login?v=${Date.now()}`}
                     className="group relative flex items-center justify-center w-full space-x-4 py-4 px-8 bg-white rounded-[1.2rem] shadow-2xl hover:bg-[#25D366] hover:text-white transition-all duration-300 active:scale-95 overflow-hidden"
                 >
                     <img
