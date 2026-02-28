@@ -1,11 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
-import { MessageSquare, ChevronRight, Sparkles } from "lucide-react";
+import { MessageSquare } from "lucide-react";
+
+// Add window type for Google GIS
+declare global {
+    interface Window {
+        google?: any;
+    }
+}
 
 export default function LoginScreen() {
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        // Load the official Google Auth script
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+
+        script.onload = () => {
+            if (window.google) {
+                window.google.accounts.id.initialize({
+                    // Your exact Google Client ID!
+                    client_id: "749902718416-ff2j3hjp35hbm2qs7oiegsj0v99nnelr.apps.googleusercontent.com",
+                    callback: async (response: any) => {
+                        try {
+                            setLoading(true);
+                            const { credential } = response;
+
+                            // Send the Google Token directly to Supabase
+                            const { error } = await supabase.auth.signInWithIdToken({
+                                provider: 'google',
+                                token: credential,
+                            });
+
+                            if (error) throw error;
+
+                            // Force a hard reload to ensure perfect state sync
+                            window.location.href = '/';
+                        } catch (error) {
+                            console.error("Login failed:", error);
+                            alert("Bhiya login fail ho gaya.");
+                            setLoading(false);
+                        }
+                    }
+                });
+
+                // Render the official Google Button
+                window.google.accounts.id.renderButton(
+                    document.getElementById("google-button-container"),
+                    { theme: "outline", size: "large", shape: "pill", width: 280 }
+                );
+            }
+        };
+
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
 
     return (
         <div className="flex flex-col items-center justify-center h-full relative overflow-hidden bg-[#0a1a14]">
@@ -17,7 +75,7 @@ export default function LoginScreen() {
                 initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 1, ease: "backOut" }}
-                className="relative z-10 w-full max-w-[340px] px-4 text-center"
+                className="relative z-10 w-full max-w-[340px] px-4 text-center flex flex-col items-center"
             >
                 {/* Interesting Logo - Floating Bubble */}
                 <motion.div
@@ -37,25 +95,13 @@ export default function LoginScreen() {
                     <span className="text-white/40 italic text-sm">Choose your vibe and start the GapShap! 🚀</span>
                 </p>
 
-                <a
-                    href={`/api/auth/login?v=${Date.now()}`}
-                    className="group relative flex items-center justify-center w-full space-x-4 py-4 px-8 bg-white rounded-[1.2rem] shadow-2xl hover:bg-[#25D366] hover:text-white transition-all duration-300 active:scale-95 overflow-hidden"
-                >
-                    <img
-                        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                        alt="Google"
-                        className="w-6 h-6"
-                    />
-                    <span className="font-bold text-gray-900 group-hover:text-white tracking-wide">Start GapShap</span>
-                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
+                {loading ? (
+                    <div className="w-10 h-10 border-4 border-[#25D366] border-t-transparent rounded-full animate-spin my-4" />
+                ) : (
+                    <div id="google-button-container" className="flex justify-center my-4 overflow-hidden rounded-full shadow-2xl"></div>
+                )}
 
-                <div className="mt-16 relative">
-                    <div className="flex justify-center space-x-3 mb-3">
-                        <div className="w-1.5 h-1.5 bg-[#25D366] rounded-full animate-bounce delay-75" />
-                        <div className="w-1.5 h-1.5 bg-[#25D366] rounded-full animate-bounce delay-150" />
-                        <div className="w-1.5 h-1.5 bg-[#25D366] rounded-full animate-bounce delay-300" />
-                    </div>
+                <div className="mt-12 relative flex flex-col items-center">
                     <p className="text-[10px] text-white/40 uppercase tracking-[0.4em] font-black">
                         Made for Bharat, by aayush.
                     </p>
@@ -64,10 +110,6 @@ export default function LoginScreen() {
                     </p>
                 </div>
             </motion.div>
-
-            {/* Background Text Decor */}
-            <div className="absolute top-10 left-[-20px] text-white/5 font-black text-[120px] pointer-events-none select-none -rotate-12">GAPSHAP</div>
-            <div className="absolute bottom-10 right-[-30px] text-white/5 font-black text-[100px] pointer-events-none select-none rotate-12">VIBES</div>
         </div>
     );
 }
