@@ -12,7 +12,9 @@ export async function GET(request: Request) {
             const supabase = await createClient()
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (!error) {
-                return NextResponse.redirect(`${origin}${next}`)
+                const response = NextResponse.redirect(`${origin}${next}`)
+                response.headers.set('Cache-Control', 'no-store, max-age=0')
+                return response
             }
             console.error('Session exchange error:', error.message)
             return NextResponse.redirect(`${origin}/?error=session_exchange_failed`)

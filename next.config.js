@@ -12,6 +12,9 @@ const withPWA = withPWAInit({
         disableDevLogs: true,
         skipWaiting: true, // 👈 FORCES the new version to take over immediately
         clientsClaim: true, // 👈 FORCES all open tabs to update right away
+        // 🚨 CRITICAL: Prevent Service Worker from intercepting API and Proxy requests!
+        // This is what caused the "Redirect Loop" on the laptop!
+        navigateFallbackDenylist: [/^\/api\//, /^\/safe-api\//],
     },
 });
 

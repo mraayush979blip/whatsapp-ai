@@ -29,6 +29,14 @@ interface ChatInterfaceProps {
     onBotDeleted: () => void;
 }
 
+const getGreetingTerm = (role: string) => {
+    const r = (role || '').toLowerCase();
+    if (r === 'girlfriend' || r === 'boyfriend') return 'jaan';
+    if (r === 'mother' || r === 'father') return 'beta';
+    if (r === 'teacher') return 'student';
+    return 'bhiya';
+};
+
 export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -58,7 +66,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             setMessages([
                 {
                     role: "bot",
-                    content: `Oye! Main hoon ${bot.name}. Sab purani baatein bhool jao, naya start karte hain! 😂`,
+                    content: `Oye! Main hoon ${bot.name}. Sab purani baatein bhool jao, naya start karte hain ${getGreetingTerm(bot.role)}! 😂`,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 }
             ]);
@@ -105,7 +113,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 setMessages([
                     {
                         role: "bot",
-                        content: `Oye! Main hoon ${bot.name}. Kya haal chaal bhiya? 😂`,
+                        content: `Oye! Main hoon ${bot.name}. Kya haal chaal ${getGreetingTerm(bot.role)}? 😂`,
                         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     }
                 ]);
@@ -376,8 +384,15 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     />
                 </div>
                 <button
-                    onClick={input.trim() ? handleSendMessage : () => alert("Voice Note: Dev is working on it! ☕💸")}
-                    className="w-12 h-12 bg-[#00a884] rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform"
+                    onPointerDown={(e) => {
+                        e.preventDefault(); // Keeps keyboard open on mobile
+                        if (input.trim()) {
+                            handleSendMessage();
+                        } else {
+                            alert("Voice Note: Dev is working on it! ☕💸");
+                        }
+                    }}
+                    className="w-12 h-12 bg-[#00a884] rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform shrink-0 touch-none select-none"
                 >
                     {input.trim() ? (
                         <Send className="w-6 h-6 text-white ml-0.5" />
