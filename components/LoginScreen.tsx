@@ -6,25 +6,6 @@ import { motion } from "framer-motion";
 import { MessageSquare, ChevronRight, Sparkles } from "lucide-react";
 
 export default function LoginScreen() {
-    const [loading, setLoading] = useState(false);
-
-    const handleGoogleLogin = async () => {
-        try {
-            setLoading(true);
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                },
-            });
-            if (error) throw error;
-        } catch (error) {
-            console.error("Error logging in with Google:", error);
-            alert("Registration failed! Check your Supabase Dashboard configuration.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="flex flex-col items-center justify-center h-full relative overflow-hidden bg-[#0a1a14]">
@@ -56,25 +37,18 @@ export default function LoginScreen() {
                     <span className="text-white/40 italic text-sm">Choose your vibe and start the GapShap! 🚀</span>
                 </p>
 
-                <button
-                    onClick={handleGoogleLogin}
-                    disabled={loading}
-                    className="group relative flex items-center justify-center w-full space-x-4 py-4 px-8 bg-white rounded-[1.2rem] shadow-2xl hover:bg-[#25D366] hover:text-white transition-all duration-300 active:scale-95 disabled:opacity-50 overflow-hidden"
+                <a
+                    href="/api/auth/login"
+                    className="group relative flex items-center justify-center w-full space-x-4 py-4 px-8 bg-white rounded-[1.2rem] shadow-2xl hover:bg-[#25D366] hover:text-white transition-all duration-300 active:scale-95 overflow-hidden"
                 >
-                    {loading ? (
-                        <div className="w-6 h-6 border-3 border-[#075E54] border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        <>
-                            <img
-                                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                                alt="Google"
-                                className="w-6 h-6"
-                            />
-                            <span className="font-bold text-gray-900 group-hover:text-white tracking-wide">Start GapShap</span>
-                            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </>
-                    )}
-                </button>
+                    <img
+                        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                        alt="Google"
+                        className="w-6 h-6"
+                    />
+                    <span className="font-bold text-gray-900 group-hover:text-white tracking-wide">Start GapShap</span>
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
 
                 <div className="mt-16 relative">
                     <div className="flex justify-center space-x-3 mb-3">
