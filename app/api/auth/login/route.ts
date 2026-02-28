@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
+            // 🔥 MUST match the rewrite in next.config.js
             redirectTo: `${origin}/auth/callback`,
             skipBrowserRedirect: true,
         },
