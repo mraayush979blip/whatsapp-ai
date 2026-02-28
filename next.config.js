@@ -25,6 +25,14 @@ const nextConfig = {
             { protocol: 'https', hostname: 'assets.mixkit.co' },
         ],
     },
+    async rewrites() {
+        return [
+            {
+                source: '/supabase-auth/:path*',
+                destination: 'https://gxelbvvgkpmgfudukxrf.supabase.co/auth/v1/:path*',
+            },
+        ]
+    },
 }
 
 export default withPWA(nextConfig)
