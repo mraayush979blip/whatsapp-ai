@@ -18,14 +18,19 @@ interface ChatBot {
 
 export default function Home() {
     const [session, setSession] = useState<Session | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selectedChat, setSelectedChat] = useState<ChatBot | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Load session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setLoading(false);
+        });
+
+        // Sync with auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
         });
 
         // Load last active chat from localStorage on refresh
@@ -37,12 +42,6 @@ export default function Home() {
                 console.error("Failed to parse saved chat", e);
             }
         }
-
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-        });
 
         return () => subscription.unsubscribe();
     }, []);
@@ -58,15 +57,18 @@ export default function Home() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-[#D1D7DB] flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-[#075E54] border-t-transparent rounded-full animate-spin" />
+            <main className="min-h-[100dvh] bg-[#f0f2f5] flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-[#008069] border-t-transparent rounded-full animate-spin" />
             </main>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[#D1D7DB] flex items-center justify-center p-0 md:p-4 transition-colors duration-500">
-            <div className="w-full h-[100dvh] md:max-w-[450px] md:h-[90vh] md:rounded-xl shadow-2xl overflow-hidden relative bg-white flex flex-col">
+        <main className="min-h-[100dvh] bg-[#f0f2f5] flex items-center justify-center p-0 md:py-8 overflow-hidden">
+            {/* Desktop Background Strip */}
+            <div className="hidden md:block absolute top-0 left-0 w-full h-[127px] bg-[#00a884] -z-10" />
+
+            <div className="w-full h-[100dvh] md:max-w-[450px] md:h-[90vh] md:rounded-lg shadow-2xl overflow-hidden relative bg-white flex flex-col border border-gray-100">
                 {!session ? (
                     <LoginScreen />
                 ) : selectedChat ? (
@@ -75,15 +77,11 @@ export default function Home() {
                         onBack={() => setSelectedChat(null)}
                         onBotDeleted={() => {
                             setSelectedChat(null);
-                            // The ChatList will automatically refresh because it fetches on mount
                         }}
                     />
                 ) : (
                     <ChatList userId={session.user.id} onSelectChat={(bot) => setSelectedChat(bot)} />
                 )}
-
-                {/* Mobile Decorator */}
-                <div className="absolute top-0 left-0 w-full h-[5px] bg-[#075e54cc] md:hidden pointer-events-none z-50" />
             </div>
         </main>
     );

@@ -1,15 +1,22 @@
-import withPWAInit from "next-pwa";
+import withPWAInit from "@ducanh2912/next-pwa";
 
 const withPWA = withPWAInit({
     dest: "public",
     register: true,
-    skipWaiting: true,
+    cacheOnFrontEndNav: true,
+    aggressiveFrontEndNavCaching: true,
+    reloadOnOnline: true,
+    swMinify: true,
     disable: process.env.NODE_ENV === "development",
+    workboxOptions: {
+        disableDevLogs: true,
+    },
 });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    turbopack: {}, // Silence the Turbopack webpack warning
     images: {
         remotePatterns: [
             { protocol: 'https', hostname: 'ui-avatars.com' },
