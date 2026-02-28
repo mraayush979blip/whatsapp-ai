@@ -12,10 +12,7 @@ export async function GET(request: Request) {
             const supabase = await createClient()
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (!error) {
-                const response = NextResponse.redirect(`${origin}${next}`)
-                // Automatically clear old cache/storage to ensure user has the latest proxy logic
-                response.headers.set('Clear-Site-Data', '"cache"')
-                return response
+                return NextResponse.redirect(`${origin}${next}`)
             }
             console.error('Session exchange error:', error.message)
             return NextResponse.redirect(`${origin}/?error=session_exchange_failed`)
