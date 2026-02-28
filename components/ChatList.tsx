@@ -1,0 +1,146 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Plus, Search, MessageSquare, MoreVertical, LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import CreateBotModal from "./CreateBotModal";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface ChatBot {
+    id: string;
+    name: string;
+    role: string;
+    avatar_url: string;
+    specifications: string;
+    mood_level: number;
+}
+
+export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot: ChatBot) => void; userId: string }) {
+    const [bots, setBots] = useState<ChatBot[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchBots = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const { data, error: sbError } = await supabase
+                .from("chatbots")
+                .select("*")
+                .order("created_at", { ascending: false });
+
+            if (sbError) {
+                // If the error code is '42P01', it means the table doesn't exist
+                if (sbError.code === '42P01') {
+                    throw new Error("Chatbots table nahi mila. Please run the SQL script in Supabase Dashboard first!");
+                }
+                throw sbError;
+            }
+            setBots(data || []);
+        } catch (err: any) {
+            console.error("Fetch error:", err);
+            setError(err.message || "Something went wrong while fetching bots.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBots();
+    }, []);
+
+    return (
+        <div className="flex flex-col h-full bg-white relative">
+            {/* WhatsApp Header */}
+            <div className="bg-[#075E54] text-white p-4 pb-0 z-10 shadow-md">
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-xl font-bold">WhatsApp</h1>
+                    <div className="flex items-center space-x-5">
+                        <Search className="w-5 h-5 opacity-80" />
+                        <button onClick={() => supabase.auth.signOut()} title="Logout">
+                            <LogOut className="w-5 h-5 opacity-80" />
+                        </button>
+                        <MoreVertical className="w-5 h-5 opacity-80" />
+                    </div>
+                </div>
+
+                {/* WhatsApp Tabs Mockup */}
+                <div className="flex text-center uppercase text-[13px] font-bold tracking-wider opacity-90">
+                    <div className="w-[10%] pb-2 flex justify-center border-b-2 border-white"><MessageSquare className="w-5 h-5" /></div>
+                    <div className="w-[30%] pb-2 border-b-2 border-white">CHATS</div>
+                    <div className="w-[30%] pb-2">STATUS</div>
+                    <div className="w-[30%] pb-2">CALLS</div>
+                </div>
+            </div>
+
+            {/* Bots List */}
+            <div className="flex-1 overflow-y-auto">
+                {error ? (
+                    <div className="p-10 text-center">
+                        <div className="text-red-500 font-bold mb-2">Error! ❌</div>
+                        <p className="text-sm text-gray-600 mb-4">{error}</p>
+                        <button
+                            onClick={fetchBots}
+                            className="bg-[#075E54] text-white px-4 py-2 rounded-lg text-sm font-semibold active:scale-95 transition-transform"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                ) : loading ? (
+                    <div className="flex justify-center p-10"><div className="w-8 h-8 border-4 border-[#075E54] border-t-transparent rounded-full animate-spin" /></div>
+                ) : (
+                    <div className="divide-y divide-gray-100">
+                        {bots.length === 0 && (
+                            <div className="p-10 text-center text-gray-400">
+                                <p>Abhi tak koi dost nahi bana bhiya 😂</p>
+                                <p className="text-sm mt-1">Niche (+) wale button pe click karo!</p>
+                            </div>
+                        )}
+                        {bots.map((bot) => (
+                            <motion.div
+                                key={bot.id}
+                                whileHover={{ backgroundColor: "#f9f9f9" }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => onSelectChat(bot)}
+                                className="flex items-center p-3 cursor-pointer transition-colors"
+                            >
+                                <div className="w-14 h-14 rounded-full bg-gray-200 mr-3 flex-shrink-0 relative">
+                                    <img src={bot.avatar_url} alt={bot.name} className="w-full h-full object-cover rounded-full" />
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <div className="flex justify-between items-center pr-1">
+                                        <h3 className="font-bold text-[16px] text-gray-900 truncate">{bot.name}</h3>
+                                        <span className="text-[11px] text-gray-400">12:34 PM</span>
+                                    </div>
+                                    <p className="text-[13px] text-gray-500 truncate">{bot.role} - Click to chat</p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Floating Action Button */}
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowModal(true)}
+                className="absolute bottom-6 right-6 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-xl z-20"
+            >
+                <Plus className="w-7 h-7" />
+            </motion.button>
+
+            {/* Modal */}
+            <AnimatePresence>
+                {showModal && (
+                    <CreateBotModal
+                        userId={userId}
+                        onClose={() => setShowModal(false)}
+                        onCreated={fetchBots}
+                    />
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
