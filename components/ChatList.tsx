@@ -66,11 +66,27 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
                 </div>
 
                 {/* WhatsApp Tabs Mockup */}
-                <div className="flex text-center uppercase text-[13px] font-bold tracking-wider opacity-90">
+                <div className="flex text-center uppercase text-[13px] font-bold tracking-wider opacity-90 cursor-pointer">
                     <div className="w-[10%] pb-2 flex justify-center border-b-2 border-white"><MessageSquare className="w-5 h-5" /></div>
                     <div className="w-[30%] pb-2 border-b-2 border-white">CHATS</div>
-                    <div className="w-[30%] pb-2">STATUS</div>
-                    <div className="w-[30%] pb-2">CALLS</div>
+                    <div
+                        className="w-[30%] pb-2 hover:bg-[#ffffff11] transition-colors"
+                        onClick={() => {
+                            const wantFeature = confirm("Status Feature: Developer Aayush is setting up the storytelling system. 📖✨ Want to request this feature faster? Click OK to email him! 😂🙌");
+                            if (wantFeature) window.open("mailto:mraayush979@gmail.com?subject=Feature Request: GapShap Status");
+                        }}
+                    >
+                        STATUS
+                    </div>
+                    <div
+                        className="w-[30%] pb-2 hover:bg-[#ffffff11] transition-colors"
+                        onClick={() => {
+                            const wantFeature = confirm("Calls Feature: AI Voice calls are in the works! 🎙️🤖 Want to request this feature faster? Click OK to email him! 😂🙌");
+                            if (wantFeature) window.open("mailto:mraayush979@gmail.com?subject=Feature Request: GapShap AI Calls");
+                        }}
+                    >
+                        CALLS
+                    </div>
                 </div>
             </div>
 

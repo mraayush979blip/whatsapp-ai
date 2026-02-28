@@ -14,28 +14,38 @@ export default function CreateBotModal({ onClose, onCreated, userId }: CreateBot
     const [name, setName] = useState("");
     const [role, setRole] = useState("");
     const [specs, setSpecs] = useState("");
-    const [avatar, setAvatar] = useState("");
+    const [avatar, setAvatar] = useState("😎"); // Default emoji
     const [mood, setMood] = useState(50); // 0 = Very Chill, 100 = Very Serious
     const [loading, setLoading] = useState(false);
 
-    // Popular WhatsApp-style avatars for randomness if empty
-    const defaultAvatars = [
-        "https://ui-avatars.com/api/?background=random&name=A",
-        "https://ui-avatars.com/api/?background=random&name=B",
-        "https://ui-avatars.com/api/?background=random&name=C"
-    ];
+    const emojis = ["😎", "🤖", "👻", "🦄", "🧸"];
 
     const handleCreate = async () => {
         if (!name || !role) return alert("Bhiya, naam aur role toh likho!");
 
         setLoading(true);
         try {
+            // Check existing bots count
+            const { count, error: countError } = await supabase
+                .from("chatbots")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId);
+
+            if (countError) throw countError;
+
+            if (count !== null && count >= 4) {
+                const upgrade = confirm("Bhiya, limit poori ho gayi! 😂 4 se zyada dost banane ke liye Premium chahiye. Developer Aayush ko mail karein?");
+                if (upgrade) window.open("mailto:mraayush979@gmail.com?subject=Premium Upgrade Request: GapShap AI");
+                setLoading(false);
+                return;
+            }
+
             const { error } = await supabase.from("chatbots").insert({
                 user_id: userId,
                 name,
                 role,
                 specifications: specs || "A supportive friend.",
-                avatar_url: avatar || defaultAvatars[Math.floor(Math.random() * defaultAvatars.length)],
+                avatar_url: `https://ui-avatars.com/api/?background=random&name=${encodeURIComponent(avatar)}&size=128&bold=true`,
                 mood_level: mood
             });
 
@@ -61,22 +71,23 @@ export default function CreateBotModal({ onClose, onCreated, userId }: CreateBot
 
                 {/* Form */}
                 <div className="p-6 space-y-5">
-                    {/* Avatar Preview */}
+                    {/* Emoji Selection */}
                     <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 relative group overflow-hidden">
-                            {avatar ? (
-                                <img src={avatar} className="w-full h-full object-cover" />
-                            ) : (
-                                <Camera className="w-8 h-8 text-gray-400" />
-                            )}
+                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-4 border-[#25D366] text-4xl shadow-inner">
+                            {avatar}
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Photo URL (Optional)"
-                            value={avatar}
-                            onChange={(e) => setAvatar(e.target.value)}
-                            className="mt-2 text-[10px] w-full text-center text-gray-400 outline-none"
-                        />
+                        <div className="flex space-x-3 mt-4">
+                            {emojis.map((e) => (
+                                <button
+                                    key={e}
+                                    onClick={() => setAvatar(e)}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all ${avatar === e ? "bg-[#25D366] scale-110 shadow-md" : "bg-gray-100 hover:bg-gray-200"}`}
+                                >
+                                    {e}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="mt-2 text-[10px] text-gray-400 uppercase font-black tracking-widest">Select Vibe Emoji</p>
                     </div>
 
                     <div className="space-y-4">
