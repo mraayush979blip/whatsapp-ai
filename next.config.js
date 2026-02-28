@@ -10,6 +10,8 @@ const withPWA = withPWAInit({
     disable: process.env.NODE_ENV === "development",
     workboxOptions: {
         disableDevLogs: true,
+        skipWaiting: true, // 👈 FORCES the new version to take over immediately
+        clientsClaim: true, // 👈 FORCES all open tabs to update right away
     },
 });
 
