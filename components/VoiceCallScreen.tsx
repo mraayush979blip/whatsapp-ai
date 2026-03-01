@@ -37,6 +37,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
     // Call Timer & Initial Ringing Simulation
     useEffect(() => {
         let ringTimer: NodeJS.Timeout;
+        let answerTimer: NodeJS.Timeout;
         let ringtone: HTMLAudioElement | null = null;
         let interval: NodeJS.Timeout;
 
@@ -44,6 +45,20 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             ringtone = new Audio("https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg");
             ringtone.loop = true;
             ringtone.play().catch(e => console.error("Ringtone blocked autoplay: ", e));
+
+            // 80% chance the bot answers, 20% chance she's busy
+            const willAnswer = Math.random() < 0.8;
+
+            if (willAnswer) {
+                // Randomly answer between 3 and 7 seconds
+                const pickupTime = Math.floor(Math.random() * 4000) + 3000;
+                answerTimer = setTimeout(() => {
+                    if (ringtone) ringtone.pause();
+                    clearTimeout(ringTimer);
+                    setCallStatus("Connected");
+                    speakText(`Hello? Oye main ${bot.name} bol rahi hu.`);
+                }, pickupTime);
+            }
 
             ringTimer = setTimeout(() => {
                 if (ringtone) ringtone.pause();
@@ -65,6 +80,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
         return () => {
             if (ringTimer) clearTimeout(ringTimer);
+            if (answerTimer) clearTimeout(answerTimer);
             if (ringtone) ringtone.pause();
             if (interval) clearInterval(interval);
         };
