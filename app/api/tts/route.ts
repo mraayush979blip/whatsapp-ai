@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 const ELEVENLABS_KEYS = [
-    process.env.ELEVENLABS_API_KEY,
-    process.env.ELEVENLABS_API_KEY_2
+    process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_LABS_API_KEY,
+    process.env.ELEVENLABS_API_KEY_2 || process.env.ELEVEN_LABS_API_KEY_2
 ].filter(Boolean);
 
 export async function POST(req: Request) {
