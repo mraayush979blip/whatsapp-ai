@@ -36,12 +36,13 @@ export default function UserProfileModal({ isOpen, onClose }: UserProfileModalPr
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:px-4 bg-black/50 backdrop-blur-sm">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.85, y: 40 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative"
+                    exit={{ opacity: 0, scale: 0.85, y: 40 }}
+                    transition={{ type: "spring", damping: 18, stiffness: 280, mass: 0.8 }}
+                    className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative"
                 >
                     <div className="bg-[#008069] p-5 text-center relative">
                         <User className="w-8 h-8 text-white mx-auto mb-2 opacity-90" />
