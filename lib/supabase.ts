@@ -13,7 +13,14 @@ export function createClient() {
 
     return createBrowserClient(
         finalUrl,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookieOptions: {
+                name: 'gapshap-auth-token',
+                domain: isBrowser ? window.location.hostname : undefined,
+                path: '/'
+            }
+        }
     )
 }
 

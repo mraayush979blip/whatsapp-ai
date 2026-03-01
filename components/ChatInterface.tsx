@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Phone, Video, MoreVertical, ChevronLeft, Smile, Paperclip, Mic, Camera } from "lucide-react";
+import { Send, Phone, Video, MoreVertical, ChevronLeft, Smile, Paperclip, Mic, Camera, Plus } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import BotProfileModal from "./BotProfileModal";
+import DeveloperSupportModal from "./DeveloperSupportModal";
+import ChatThemeModal, { THEMES } from "./ChatThemeModal";
 
 interface Message {
     role: "user" | "bot";
@@ -43,6 +45,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     const [isTyping, setIsTyping] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [themeConfig, setThemeConfig] = useState<{ isOpen: boolean, themeId: string }>({
+        isOpen: false,
+        themeId: typeof window !== "undefined" ? localStorage.getItem("chat_theme") || "default" : "default"
+    });
+    const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const scrollRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -79,8 +86,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         }
     };
 
-    const handleCallAlert = () => {
-        alert("Developer is working on it! 🛠️\nYou can buy a coffee for the developer so he can do it fast. ☕💸");
+    const handleCallAlert = (featureName: string) => {
+        setDevFeature({ isOpen: true, name: featureName });
     };
 
     // Initialize Audio
@@ -250,36 +257,38 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        alert("Media Sharing: Developer is setting up the 'gapshap_media' bucket. You can buy a coffee to help him finish this faster! ☕💸");
+        setDevFeature({ isOpen: true, name: "Media Sharing" });
         // Logic for uploading will go here once user confirms bucket creation
     };
 
     return (
-        <div className="flex flex-col h-full relative bg-[#E5DDD5] overflow-hidden" onClick={() => showMenu && setShowMenu(false)}>
-            {/* Header Area */}
-            <div className="bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#111b21] px-3 py-2 flex items-center shadow-md md:shadow-sm md:border-b md:border-[#d1d7db] z-30 min-h-[56px] md:min-h-[59px]">
-                <button onClick={onBack} className="flex items-center active:bg-[#ffffff22] rounded-full p-1 -ml-1 transition-colors md:hidden">
-                    <ChevronLeft className="w-7 h-7 -mr-0.5" />
-                </button>
+        <div className="flex flex-col h-full bg-[#efeae2] md:bg-[#0b141a] relative">
+            {/* Header */}
+            <div className="bg-[#008069] md:bg-[#202c33] text-white md:text-[#e9edef] p-3 flex items-center justify-between shadow-sm z-10 shrink-0 border-b-0 md:border-b md:border-[#2f3b43]">
+                <div className="flex items-center">
+                    <button onClick={onBack} className="md:hidden mr-2 active:scale-95 transition-transform">
+                        <ChevronLeft className="w-7 h-7" />
+                    </button>
 
-                <button
-                    onClick={() => setShowProfile(true)}
-                    className="flex-1 flex items-center overflow-hidden hover:bg-[#ffffff11] md:hover:bg-gray-200 p-1 rounded-lg md:rounded-none transition-colors cursor-pointer"
-                >
-                    <div className="w-[38px] h-[38px] rounded-full bg-gray-300 mr-2.5 flex-shrink-0 relative overflow-hidden border-[0.5px] border-white/20 md:border-none">
-                        <img src={bot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 overflow-hidden text-left">
-                        <h2 className="text-[15.5px] font-bold md:font-semibold md:text-[16px] truncate leading-tight tracking-tight">{bot.name}</h2>
-                        <p className="text-[11.5px] md:text-[13px] leading-tight text-[#f1f1f1cc] md:text-[#667781] mt-0.5 font-medium md:font-normal">
-                            {isTyping ? "typing..." : "online"}
-                        </p>
-                    </div>
-                </button>
+                    <button
+                        onClick={() => setShowProfile(true)}
+                        className="flex-1 flex items-center overflow-hidden hover:bg-[#ffffff11] md:hover:bg-[#2a3942] p-1 rounded-lg md:rounded-none transition-colors cursor-pointer"
+                    >
+                        <div className="w-[38px] h-[38px] rounded-full bg-gray-300 mr-2.5 flex-shrink-0 relative overflow-hidden border-[0.5px] border-white/20 md:border-none">
+                            <img src={bot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 overflow-hidden text-left">
+                            <h2 className="text-[15.5px] font-bold md:font-semibold md:text-[16px] truncate leading-tight tracking-tight">{bot.name}</h2>
+                            <p className="text-[11.5px] md:text-[13px] leading-tight text-[#f1f1f1cc] md:text-[#8696a0] mt-0.5 font-medium md:font-normal">
+                                {isTyping ? "typing..." : "online"}
+                            </p>
+                        </div>
+                    </button>
+                </div>
 
                 <div className="flex space-x-4 items-center pl-2 relative pr-1">
-                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform"><Video className="w-[20px] h-[20px] fill-white md:fill-[#54656f] text-transparent md:text-[#54656f]" /></button>
-                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white md:fill-[#54656f] text-transparent md:text-[#54656f]" /></button>
+                    <button onClick={() => handleCallAlert("Video Calls")} className="active:scale-95 transition-transform"><Video className="w-[20px] h-[20px] fill-white md:fill-transparent text-[#e9edef] md:text-[#aebac1]" /></button>
+                    <button onClick={() => handleCallAlert("Voice Calls")} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white md:fill-transparent text-[#e9edef] md:text-[#aebac1]" /></button>
 
                     <div className="relative">
                         <button
@@ -287,10 +296,9 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                                 e.stopPropagation();
                                 setShowMenu(!showMenu);
                             }}
-                            className="hover:bg-[#ffffff22] md:hover:bg-gray-200 p-1.5 rounded-full transition-colors active:scale-90"
-                            title="Menu"
+                            className="active:scale-90 transition-transform md:hover:bg-[#374248] md:p-1.5 rounded-full -mr-1.5"
                         >
-                            <MoreVertical className="w-[22px] h-[22px] text-white md:text-[#54656f]" />
+                            <MoreVertical className="w-5 h-5 text-white md:text-[#aebac1]" />
                         </button>
 
                         {/* Dropdown Menu */}
@@ -311,7 +319,16 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                                     <button
                                         onClick={() => {
                                             setShowMenu(false);
-                                            alert("Disappearing messages: Dev is working on it! ☕💸");
+                                            setThemeConfig(prev => ({ ...prev, isOpen: true }));
+                                        }}
+                                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors border-t border-gray-50"
+                                    >
+                                        Wallpaper / Theme
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowMenu(false);
+                                            setDevFeature({ isOpen: true, name: "Disappearing Messages" });
                                         }}
                                         className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors border-t border-gray-50"
                                     >
@@ -348,12 +365,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             {/* Messages Area */}
             <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-2 py-4 relative chat-canvas flex flex-col space-y-1"
-                style={{
-                    backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')",
-                    backgroundSize: '300px',
-                    backgroundRepeat: 'repeat'
-                }}
+                className={`flex-1 overflow-y-auto px-2 py-4 relative chat-canvas flex flex-col space-y-1 ${themeConfig.themeId === "dark" ? "bg-[#0b141a]" : ""}`}
+                style={THEMES.find(t => t.id === themeConfig.themeId)?.bgStyle || THEMES[0].bgStyle}
             >
                 <div className="flex justify-center mb-4">
                     <span className="bg-[#D1EBFA] text-[#555] px-2 py-1 rounded-md text-[11px] font-medium uppercase shadow-sm">Today</span>
@@ -373,26 +386,36 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             </div>
 
             {/* Input Area */}
-            <div className="px-2 py-3 md:px-4 md:py-2.5 bg-[#E5DDD5] md:bg-[#f0f2f5] flex items-center space-x-1.5 md:space-x-3 z-10 md:mb-1">
-                <Smile className="w-7 h-7 text-gray-500 hidden md:block cursor-pointer active:scale-90 mx-1" />
-                <button onClick={() => fileInputRef.current?.click()} className="hidden md:block active:scale-90 mx-1">
-                    <Paperclip className="w-6 h-6 text-gray-500" />
+            <div className="bg-[#f0f0f0] md:bg-[#202c33] p-2 flex items-end space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px]">
+                <button
+                    onClick={() => setDevFeature({ isOpen: true, name: "Media Sharing" })}
+                    className="p-3 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform"
+                >
+                    <Plus className="w-6 h-6 md:w-7 md:h-7" />
                 </button>
-                <div className="flex-1 bg-white rounded-[24px] md:rounded-lg px-3 py-2 shadow-sm flex items-center md:py-2.5">
-                    <Smile className="w-6 h-6 text-gray-400 mr-2 md:hidden" />
-                    <input
-                        type="text"
-                        className="flex-1 outline-none text-[15px] bg-transparent md:text-[15px] text-[#111b21] placeholder-[#54656f]"
-                        placeholder="Type a message"
+
+                <div className="flex-1 bg-white md:bg-[#2a3942] rounded-3xl md:rounded-lg flex flex-col justify-center min-h-[42px] max-h-[120px] overflow-hidden my-auto shadow-sm md:shadow-none border-[0.5px] border-gray-200 md:border-none">
+                    <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        placeholder="Type a message"
+                        className="w-full bg-transparent px-4 py-3 outline-none resize-none no-scrollbar text-[15px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef]"
+                        rows={1}
                     />
-                    <button onClick={() => fileInputRef.current?.click()} className="md:hidden">
-                        <Paperclip className="w-5 h-5 text-gray-500 rotate-[-45deg] mx-1" />
+                </div>
+
+                <div className="flex items-center space-x-1.5 md:space-x-3 text-[#54656f] md:text-[#aebac1] px-1 md:hidden">
+                    <button onClick={() => fileInputRef.current?.click()}>
+                        <Paperclip className="w-5 h-5 md:w-6 md:h-6 rotate-[-45deg] mx-1" />
                     </button>
                     <button onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="w-5 h-5 text-gray-500 mx-1 md:hidden" />
+                        <Camera className="w-5 h-5 md:w-6 md:h-6 mx-1" />
                     </button>
                     <input
                         type="file"
@@ -408,21 +431,21 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                         if (input.trim()) {
                             handleSendMessage();
                         } else {
-                            alert("Voice Note: Dev is working on it! ☕💸");
+                            setDevFeature({ isOpen: true, name: "Voice Notes" });
                         }
                     }}
-                    className="w-12 h-12 md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-md md:shadow-none active:scale-95 transition-transform shrink-0 touch-none select-none"
+                    className="w-12 h-12 md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-md md:shadow-none active:scale-95 transition-transform shrink-0 touch-none select-none md:ml-2 absolute right-2 bottom-3 md:relative md:right-auto md:bottom-auto md:mb-1.5 z-20"
                 >
                     {input.trim() ? (
-                        <Send className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#54656f] ml-0.5 md:ml-0" />
+                        <Send className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#aebac1] ml-0.5 md:ml-0" />
                     ) : (
-                        <Mic className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#54656f]" />
+                        <Mic className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#aebac1]" />
                     )}
                 </button>
             </div>
 
-            {/* Background Decorator */}
-            <div className="absolute inset-0 chat-bg opacity-[0.05] pointer-events-none" />
+            <div className="absolute inset-0 chat-bg opacity-[0.05] md:opacity-[0.02] pointer-events-none" />
+
             {/* Profile Modal */}
             <AnimatePresence>
                 {showProfile && (
@@ -433,6 +456,20 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     />
                 )}
             </AnimatePresence>
-        </div>
+            <DeveloperSupportModal
+                isOpen={devFeature.isOpen}
+                onClose={() => setDevFeature(prev => ({ ...prev, isOpen: false }))}
+                featureName={devFeature.name}
+            />
+            <ChatThemeModal
+                isOpen={themeConfig.isOpen}
+                onClose={() => setThemeConfig(prev => ({ ...prev, isOpen: false }))}
+                currentThemeId={themeConfig.themeId}
+                onSelectTheme={(id) => {
+                    setThemeConfig({ isOpen: false, themeId: id });
+                    localStorage.setItem("chat_theme", id);
+                }}
+            />
+        </div >
     );
 }

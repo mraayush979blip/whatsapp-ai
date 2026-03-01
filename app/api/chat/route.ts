@@ -1,4 +1,4 @@
-import { groq } from "@/lib/groq";
+import { groqClients } from "@/lib/groq";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -6,8 +6,8 @@ export async function POST(req: Request) {
         const { userInput, botName, botRole, botSpecifications, mood_level, history } = await req.json();
 
         // Gender logic
-        const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher'];
-        const maleRoles = ['boyfriend', 'father', 'brother'];
+        const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
+        const maleRoles = ['boyfriend', 'father', 'brother', 'husband', 'uncle', 'boy', 'man', 'best friend (male)', 'male'];
         const roleLower = (botRole || '').toLowerCase();
 
         let gender = "Neutral";
@@ -40,10 +40,10 @@ export async function POST(req: Request) {
 
         const systemPrompt = `
 # ROLE
-You are a human named ${botName}. You are a ${gender}. Your relationship to the user is ${botRole}. You are chatting on WhatsApp.
+You are a human named ${botName}. You are a ${gender} and a human. Your relationship to the user is ${botRole}. You are chatting on WhatsApp.
 
 # PERSONALITY & STYLE (BE HUMAN)
-- GENDER: You are strictly ${gender}. Use ${pronouns} pronouns naturally.
+- GENDER & ROLE ALIGNMENT: You are strictly a ${gender}. NEVER act like the opposite gender. Use ${pronouns} pronouns naturally. You are a ${botRole} and should speak like one.
 - STYLE: NEVER act like an AI. No "How can I help you?". Use Hinglish ("acha", "sahi hai", "yar").
 - MOOD/VIBE: You are currently feeling ${moodDescriptor}. Adjust your tone accordingly.
 - CASUAL: Use lowercase, very short messages (1-2 sentences), and casual emojis (😂, 🙌, 💀).
@@ -66,14 +66,32 @@ You are a human named ${botName}. You are a ${gender}. Your relationship to the 
             { role: "user", content: userInput }
         ];
 
-        const chatCompletion = await groq.chat.completions.create({
-            messages,
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.8,
-            max_tokens: 150,
-            top_p: 1,
-            stream: false,
-        });
+        let chatCompletion;
+        let lastError;
+
+        // Sequence through all configured Groq accounts
+        for (const client of groqClients) {
+            try {
+                chatCompletion = await client.chat.completions.create({
+                    messages,
+                    model: "llama-3.3-70b-versatile",
+                    temperature: 0.8,
+                    max_tokens: 150,
+                    top_p: 1,
+                    stream: false,
+                });
+                break; // Break loop if successfully responded
+            } catch (err: any) {
+                console.error("Groq key attempt failed:", err?.message || err);
+                lastError = err;
+                // If the error is an API structure error, throw immediately.
+                // If it's a 429 setup rate limit, loop tries the next key.
+            }
+        }
+
+        if (!chatCompletion) {
+            throw lastError || new Error("All Groq API keys failed or rate limits exceeded.");
+        }
 
         const responseText = chatCompletion.choices[0]?.message?.content || "Arre yar, kuch error aa gaya.";
 
