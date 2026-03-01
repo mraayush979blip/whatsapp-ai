@@ -8,6 +8,7 @@ import { Session } from "@supabase/supabase-js";
 import ChatList from "@/components/ChatList";
 import { MessageSquare, Phone, CircleDot, Users, Settings, Archive } from "lucide-react";
 import DeveloperSupportModal from "@/components/DeveloperSupportModal";
+import UserProfileModal from "@/components/UserProfileModal";
 
 interface ChatBot {
     id: string;
@@ -23,6 +24,7 @@ export default function Home() {
     const [selectedChat, setSelectedChat] = useState<ChatBot | null>(null);
     const [loading, setLoading] = useState(true);
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -54,6 +56,14 @@ export default function Home() {
                 setSelectedChat(JSON.parse(savedChat));
             } catch (e) {
                 console.error("Failed to parse saved chat", e);
+            }
+        }
+
+        // Auto-prompt user profile if missing
+        if (typeof window !== "undefined") {
+            const userProfile = localStorage.getItem("gapshap_user_profile");
+            if (!userProfile) {
+                setTimeout(() => setShowProfileModal(true), 1500); // Wait for animations
             }
         }
 
@@ -118,7 +128,7 @@ export default function Home() {
                                 <button onClick={() => setDevFeature({ isOpen: true, name: "Settings Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <Settings className="w-6 h-6" />
                                 </button>
-                                <button onClick={() => setDevFeature({ isOpen: true, name: "Your Desktop Profile" })} className="p-1 rounded-full hover:bg-[#374248] mt-2 mb-2">
+                                <button onClick={() => setShowProfileModal(true)} className="p-1 rounded-full hover:bg-[#374248] mt-2 mb-2">
                                     <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-500">
                                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`} alt="Profile" className="w-full h-full object-cover" />
                                     </div>
@@ -164,6 +174,10 @@ export default function Home() {
                 isOpen={devFeature.isOpen}
                 onClose={() => setDevFeature(prev => ({ ...prev, isOpen: false }))}
                 featureName={devFeature.name}
+            />
+            <UserProfileModal
+                isOpen={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
             />
         </main>
     );

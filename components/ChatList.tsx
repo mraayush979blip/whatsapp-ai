@@ -65,7 +65,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                     {/* Desktop Avatar Placeholder (Now hidden since it's on left panel) */}
 
                     <div className="flex items-center space-x-5 md:space-x-3 pr-1">
-                        <button onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })} className="hidden md:flex hover:bg-[#202c33] p-1.5 rounded-full items-center justify-center text-[#aebac1]" title="Communities">
+                        <button onClick={() => setShowModal(true)} className="hidden md:flex hover:bg-[#202c33] p-1.5 rounded-full items-center justify-center text-[#aebac1]" title="Add New Friend">
                             <Plus className="w-5 h-5" />
                         </button>
                         <Search className="w-5 h-5 md:hidden opacity-90" />
