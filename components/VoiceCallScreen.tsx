@@ -32,7 +32,8 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
     const isSpeakingRef = useRef<boolean>(false);
     const silenceFramesRef = useRef<number>(0);
-    const reqAnimationFrameRef = useRef<number>(0);
+    const totalFramesRef = useRef<number>(0); // absolute duration tracker
+    const vadIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const audioChunksRef = useRef<BlobPart[]>([]);
 
     // Call Timer & Initial Ringing Simulation
@@ -116,9 +117,10 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
     // VAD (Voice Activity Detection) logic
     const checkAudioLevel = () => {
         if (!analyserRef.current || !mediaRecorderRef.current || mediaRecorderRef.current.state !== "recording") {
-            reqAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
             return;
         }
+
+        totalFramesRef.current += 1;
 
         const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
         analyserRef.current.getByteFrequencyData(dataArray);
@@ -134,26 +136,29 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             isSpeakingRef.current = true;
             silenceFramesRef.current = 0;
         } else {
+            silenceFramesRef.current += 1;
+
             if (isSpeakingRef.current) {
-                silenceFramesRef.current += 1;
-                // If silent for ~1 second (approx 60 frames at 60fps)
-                if (silenceFramesRef.current > 60) {
+                // If they spoke and then went silent for ~1 second (approx 20 frames at 20fps)
+                if (silenceFramesRef.current > 20) {
                     isSpeakingRef.current = false;
                     silenceFramesRef.current = 0;
-                    // Stop recording to send chunk
-                    try {
-                        mediaRecorderRef.current.stop();
-                    } catch (e) { }
+                    try { mediaRecorderRef.current.stop(); } catch (e) { }
+                }
+            } else {
+                // If they never spoke, but 4 seconds (80 frames at 20fps) have passed, force cut off to prompt AI
+                if (silenceFramesRef.current > 80) {
+                    silenceFramesRef.current = 0;
+                    try { mediaRecorderRef.current.stop(); } catch (e) { }
                 }
             }
         }
 
-        // Failsafe: if we've been recording for over 12 seconds straight, force stop to send it
-        if (isSpeakingRef.current && silenceFramesRef.current === 0) {
-            // we can use a secondary frame counter to force cut-off, but for now we'll just let them talk
+        // Failsafe: if we've been unconditionally recording for over 15 seconds (300 frames), force stop
+        if (totalFramesRef.current > 300) {
+            totalFramesRef.current = 0;
+            try { mediaRecorderRef.current.stop(); } catch (e) { }
         }
-
-        reqAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
     };
 
     const startListening = async () => {
@@ -203,11 +208,13 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             setIsListening(true);
             isSpeakingRef.current = false;
             silenceFramesRef.current = 0;
+            totalFramesRef.current = 0;
 
-            if (reqAnimationFrameRef.current) {
-                cancelAnimationFrame(reqAnimationFrameRef.current);
+            if (vadIntervalRef.current) {
+                clearInterval(vadIntervalRef.current);
             }
-            checkAudioLevel();
+            // Run VAD at 20fps (50ms interval) so it works even when screen is locked/backgrounded
+            vadIntervalRef.current = setInterval(checkAudioLevel, 50);
 
         } catch (err) {
             console.error("Microphone access error:", err);
@@ -219,8 +226,8 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             try { mediaRecorderRef.current.stop(); } catch (e) { }
         }
-        if (reqAnimationFrameRef.current) {
-            cancelAnimationFrame(reqAnimationFrameRef.current);
+        if (vadIntervalRef.current) {
+            clearInterval(vadIntervalRef.current);
         }
         setIsListening(false);
     };
