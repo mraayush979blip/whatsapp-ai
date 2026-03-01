@@ -40,15 +40,15 @@ export default function MessageBubble({ message }: { message: Message }) {
                     <p className="whitespace-pre-wrap leading-tight font-[14.5px]">{message.content}</p>
                 )}
                 <div className="flex justify-end items-center mt-1 space-x-1">
-                    <span className="text-[10px] text-[#8696a0] leading-none uppercase ml-2 flex items-center space-x-1">
-                        <span>{message.time}</span>
+                    <span className="text-[11px] text-[#8696a0] leading-none ml-2 flex items-end gap-[3px]">
+                        <span className="pb-[1px]">{message.time.toUpperCase()}</span>
                         {isUser && message.status === "sent" && (
-                            <svg viewBox="0 0 16 15" width="15" height="15" className="fill-[#8696a0] ml-1">
+                            <svg viewBox="0 0 16 15" width="16" height="15" className="fill-[#8696a0]">
                                 <path d="M10.91 3.316l-.478-.372a.365.365 0 00-.51.063L5.666 9.88a.32.32 0 01-.484.032l-.358-.325a.319.319 0 00-.484.032l-.378.48a.418.418 0 00.036.54l1.32 1.267a.418.418 0 00.612-.013l4.984-5.63a.365.365 0 00-.029-.507z" />
                             </svg>
                         )}
                         {isUser && (message.status === "delivered" || message.status === "read") && (
-                            <svg viewBox="0 0 16 15" width="16" height="15" className={`ml-1 ${message.status === "read" ? "fill-[#53bdeb]" : "fill-[#8696a0]"}`}>
+                            <svg viewBox="0 0 16 15" width="16" height="16" className={`${message.status === "read" ? "fill-[#53bdeb]" : "fill-[#8696a0]"}`}>
                                 <path d="M15.01 3.316l-.478-.372a.365.365 0 00-.51.063L8.666 9.88a.32.32 0 01-.484.032l-.358-.325a.319.319 0 00-.484.032l-.378.48a.418.418 0 00.036.54l1.32 1.267a.418.418 0 00.612-.013l7.117-8.037a.365.365 0 00-.029-.507zM5.385 10.463a.318.318 0 00-.484.031L2.09 13.66a.321.321 0 01-.484.031l-.358-.325a.318.318 0 00-.483.032l-.378.48a.418.418 0 00.036.54l1.32 1.267a.418.418 0 00.612-.013l3.418-3.86a.365.365 0 00-.029-.507l-.357-.842z" />
                             </svg>
                         )}
