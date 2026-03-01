@@ -26,6 +26,10 @@ export default function BotProfileModal({ bot, onClose, onDelete }: BotProfileMo
 
         setIsDeleting(true);
         try {
+            // First delete associated messages to prevent foreign key errors
+            const { error: messagesError } = await supabase.from("messages").delete().eq("chatbot_id", bot.id);
+            if (messagesError) throw messagesError;
+
             const { error } = await supabase.from("chatbots").delete().eq("id", bot.id);
             if (error) throw error;
             onDelete();

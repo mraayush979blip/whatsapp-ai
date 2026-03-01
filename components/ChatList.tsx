@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, MessageSquare, MoreVertical, LogOut } from "lucide-react";
+import { Plus, Search, MessageSquare, MoreVertical, LogOut, CircleDot, Users, Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import CreateBotModal from "./CreateBotModal";
 import { motion, AnimatePresence } from "framer-motion";
@@ -137,22 +137,10 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                     </div>
                 </div>
 
-                {/* WhatsApp Tabs Mockup (Hidden on Desktop) */}
-                <div className="flex md:hidden text-center uppercase text-[13.5px] font-bold tracking-wider opacity-90 cursor-pointer">
-                    <div className="w-[10%] pb-2.5 flex justify-center border-b-[3px] border-white/40"><MessageSquare className="w-5 h-5" /></div>
-                    <div className="w-[30%] pb-2.5 border-b-[3px] border-white">CHATS</div>
-                    <div
-                        className="w-[30%] pb-2.5 hover:bg-[#ffffff11] transition-colors"
-                        onClick={() => setDevFeature({ isOpen: true, name: "Status Feature" })}
-                    >
-                        STATUS
-                    </div>
-                    <div
-                        className="w-[30%] pb-2.5 hover:bg-[#ffffff11] transition-colors"
-                        onClick={() => setDevFeature({ isOpen: true, name: "Calls Feature" })}
-                    >
-                        CALLS
-                    </div>
+                {/* Search Bar for Mobile (Hidden on Desktop) */}
+                <div className="flex md:hidden items-center bg-white/20 rounded-full px-3 py-1.5 w-full mt-2 mb-2">
+                    <Search className="w-4 h-4 text-white mr-2" />
+                    <input type="text" placeholder="Ask Meta AI or Search" className="bg-transparent outline-none text-[15px] w-full text-white placeholder-white" />
                 </div>
             </div>
 
@@ -250,10 +238,38 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowModal(true)}
-                className="absolute bottom-6 right-6 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-xl z-20"
+                className="absolute bottom-[80px] md:bottom-6 right-4 md:right-6 w-[56px] h-[56px] bg-[#25D366] rounded-[16px] md:rounded-full flex items-center justify-center text-white shadow-xl z-20"
             >
                 <Plus className="w-7 h-7" />
             </motion.button>
+
+            {/* WhatsApp Bottom Navigation Mockup (Mobile Only) */}
+            <div className="flex md:hidden w-full bg-white border-t border-gray-100 justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] relative">
+                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#008069]">
+                    <div className="bg-[#D1EBFA] px-4 py-1 rounded-full mb-1">
+                        <MessageSquare className="w-6 h-6 fill-current" />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Chats</span>
+                </div>
+                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f] hover:text-[#008069] transition-colors" onClick={() => setDevFeature({ isOpen: true, name: "Updates Feature" })}>
+                    <div className="px-4 py-1 mb-1">
+                        <CircleDot className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Updates</span>
+                </div>
+                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f] hover:text-[#008069] transition-colors" onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })}>
+                    <div className="px-4 py-1 mb-1">
+                        <Users className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Communities</span>
+                </div>
+                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f] hover:text-[#008069] transition-colors" onClick={() => setDevFeature({ isOpen: true, name: "Calls Feature" })}>
+                    <div className="px-4 py-1 mb-1">
+                        <Phone className="w-6 h-6" />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Calls</span>
+                </div>
+            </div>
 
             {/* Modal */}
             <AnimatePresence>

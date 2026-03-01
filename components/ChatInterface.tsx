@@ -438,7 +438,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             </div>
 
             {/* Input Area */}
-            <div className="bg-[#f0f0f0] md:bg-[#202c33] p-2 flex items-end space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px]">
+            <div className="bg-[#f0f0f0] md:bg-[#202c33] p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-end space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px]">
                 <button
                     onClick={() => setDevFeature({ isOpen: true, name: "Media Sharing" })}
                     className="p-3 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform"

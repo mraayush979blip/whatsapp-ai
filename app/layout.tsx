@@ -10,13 +10,20 @@ export const metadata: Metadata = {
     title: "GapShap AI",
     description: "Indore ka sabse shana chatbot! 😂",
     manifest: "/manifest.json",
-    themeColor: "#008069",
-    viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
     appleWebApp: {
         capable: true,
         statusBarStyle: "default",
         title: "GapShap AI",
     },
+};
+
+export const viewport = {
+    themeColor: "#008069",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
 };
 
 export default function RootLayout({
