@@ -36,23 +36,39 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
     // Call Timer & Initial Ringing Simulation
     useEffect(() => {
-        const ringTimer = setTimeout(() => {
-            setCallStatus("Connected");
-            speakText(`Hello? Oye main ${bot.name} bol rahi hu.`);
-        }, 2000);
-
+        let ringTimer: NodeJS.Timeout;
+        let ringtone: HTMLAudioElement | null = null;
         let interval: NodeJS.Timeout;
-        if (callStatus === "Connected" || callStatus === "Thinking...") {
+
+        if (callStatus === "Calling...") {
+            ringtone = new Audio("https://actions.google.com/sounds/v1/alarms/phone_ringing.ogg");
+            ringtone.loop = true;
+            ringtone.play().catch(e => console.error("Ringtone blocked autoplay: ", e));
+
+            ringTimer = setTimeout(() => {
+                if (ringtone) ringtone.pause();
+                setCallStatus("Call Declined");
+
+                // Speak the busy message explicitly without STT processing
+                const busyText = `Sorry, ${bot.name} is talking to someone else right now. Please try again later.`;
+                speakText(busyText).then(() => {
+                    // End the call automatically after saying the message
+                    setTimeout(() => onEndCall(), 5000);
+                });
+
+            }, 30000); // 30 seconds ringing
+        } else if (callStatus === "Connected" || callStatus === "Thinking...") {
             interval = setInterval(() => {
                 setCallDuration((prev) => prev + 1);
             }, 1000);
         }
 
         return () => {
-            clearTimeout(ringTimer);
+            if (ringTimer) clearTimeout(ringTimer);
+            if (ringtone) ringtone.pause();
             if (interval) clearInterval(interval);
         };
-    }, []);
+    }, [callStatus]);
 
     // Format time (MM:SS)
     const formatTime = (seconds: number) => {
