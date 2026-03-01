@@ -59,19 +59,22 @@ export default function Home() {
             }
         }
 
-        // Auto-prompt user profile if missing
-        if (typeof window !== "undefined") {
-            const userProfile = localStorage.getItem("gapshap_user_profile");
-            if (!userProfile) {
-                setTimeout(() => setShowProfileModal(true), 1500); // Wait for animations
-            }
-        }
-
         return () => {
             mounted = false;
             subscription.unsubscribe();
         };
     }, []);
+
+    // Auto-prompt user profile if missing, ONLY AFTER login
+    useEffect(() => {
+        if (session && typeof window !== "undefined") {
+            const userProfile = localStorage.getItem("gapshap_user_profile");
+            if (!userProfile) {
+                const timer = setTimeout(() => setShowProfileModal(true), 1500); // Wait for animations
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [session]);
 
     // 🔄 Sync selectedChat to localStorage
     useEffect(() => {

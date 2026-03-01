@@ -25,6 +25,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const [error, setError] = useState<string | null>(null);
+    const [activeFilter, setActiveFilter] = useState("all");
 
     const fetchBots = async () => {
         try {
@@ -125,7 +126,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                                         </button>
                                         <button
                                             onClick={() => supabase.auth.signOut()}
-                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50 md:hidden"
+                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50"
                                         >
                                             Logout
                                         </button>
@@ -165,10 +166,30 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
 
             {/* Desktop Filter Tabs */}
             <div className="hidden md:flex px-3 pb-3 bg-[#111b21] space-x-2 overflow-x-auto no-scrollbar border-b border-[#202c33]">
-                <button onClick={() => setDevFeature({ isOpen: true, name: "All Filter" })} className="bg-[#2a3942] text-[#00a884] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
-                <button onClick={() => setDevFeature({ isOpen: true, name: "Unread Filter" })} className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Unread</button>
-                <button onClick={() => setDevFeature({ isOpen: true, name: "Favourites Filter" })} className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Favourites</button>
-                <button onClick={() => setDevFeature({ isOpen: true, name: "Groups Filter" })} className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Groups</button>
+                <button
+                    onClick={() => setActiveFilter("all")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${activeFilter === "all" ? "bg-[#2a3942] text-[#00a884]" : "bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942]"}`}
+                >
+                    All
+                </button>
+                <button
+                    onClick={() => setActiveFilter("unread")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${activeFilter === "unread" ? "bg-[#2a3942] text-[#00a884]" : "bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942]"}`}
+                >
+                    Unread
+                </button>
+                <button
+                    onClick={() => setActiveFilter("favourites")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${activeFilter === "favourites" ? "bg-[#2a3942] text-[#00a884]" : "bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942]"}`}
+                >
+                    Favourites
+                </button>
+                <button
+                    onClick={() => setActiveFilter("groups")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${activeFilter === "groups" ? "bg-[#2a3942] text-[#00a884]" : "bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942]"}`}
+                >
+                    Groups
+                </button>
             </div>
 
             {/* Bots List */}
