@@ -20,21 +20,29 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
     const [callDuration, setCallDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isListening, setIsListening] = useState(false);
-    const [transcript, setTranscript] = useState("");
 
-    const recognitionRef = useRef<any>(null);
     const deepgramAudioRef = useRef<HTMLAudioElement | null>(null);
-    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // MediaRecorder & VAD Refs
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    const isSpeakingRef = useRef<boolean>(false);
+    const silenceFramesRef = useRef<number>(0);
+    const reqAnimationFrameRef = useRef<number>(0);
+    const audioChunksRef = useRef<BlobPart[]>([]);
 
     // Call Timer & Initial Ringing Simulation
     useEffect(() => {
         const ringTimer = setTimeout(() => {
             setCallStatus("Connected");
-            speakInitialGreeting();
+            speakText(`Hello? Oye main ${bot.name} bol rahi hu.`);
         }, 2000);
 
         let interval: NodeJS.Timeout;
-        if (callStatus === "Connected") {
+        if (callStatus === "Connected" || callStatus === "Thinking...") {
             interval = setInterval(() => {
                 setCallDuration((prev) => prev + 1);
             }, 1000);
@@ -44,7 +52,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             clearTimeout(ringTimer);
             if (interval) clearInterval(interval);
         };
-    }, [callStatus]);
+    }, []);
 
     // Format time (MM:SS)
     const formatTime = (seconds: number) => {
@@ -60,93 +68,196 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 deepgramAudioRef.current.pause();
                 deepgramAudioRef.current.currentTime = 0;
             }
+            stopListening();
+            if (audioContextRef.current) {
+                audioContextRef.current.close().catch(e => console.error(e));
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
         };
     }, []);
 
-    // Speech Recognition (Listening) Setup
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                const recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = 'hi-IN'; // Hindi/Hinglish optimal
+    // VAD (Voice Activity Detection) logic
+    const checkAudioLevel = () => {
+        if (!analyserRef.current || !mediaRecorderRef.current || mediaRecorderRef.current.state !== "recording") {
+            reqAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
+            return;
+        }
 
-                recognition.onresult = (event: any) => {
-                    if (isMuted) return; // Ignore if muted
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
 
-                    let currentTranscript = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        currentTranscript += event.results[i][0].transcript;
-                    }
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / dataArray.length;
 
-                    if (event.results[event.results.length - 1].isFinal) {
-                        setTranscript(currentTranscript);
-                        handleUserSaid(currentTranscript);
-                    }
-                };
-
-                recognition.onerror = (event: any) => {
-                    console.error("Speech Recognition Error", event.error);
-                    if (event.error === 'no-speech') {
-                        // Restart listening silently
-                        try { recognition.stop(); } catch (e) { }
-                        setTimeout(() => { if (!isMuted && callStatus === "Connected") { try { recognition.start() } catch (e) { } } }, 1000);
-                    }
-                };
-
-                recognition.onend = () => {
-                    // Auto-restart if call is still active and not muted
-                    if (callStatus === "Connected" && !isMuted) {
-                        try { recognition.start(); } catch (e) { }
-                    }
-                };
-
-                recognitionRef.current = recognition;
-            } else {
-                alert("Your browser doesn't support Voice Calls! Try Chrome or Safari.");
-                onEndCall();
+        // Threshold for speaking
+        if (average > 10) {
+            isSpeakingRef.current = true;
+            silenceFramesRef.current = 0;
+        } else {
+            if (isSpeakingRef.current) {
+                silenceFramesRef.current += 1;
+                // If silent for ~1.5 seconds (approx 90 frames at 60fps)
+                if (silenceFramesRef.current > 90) {
+                    isSpeakingRef.current = false;
+                    silenceFramesRef.current = 0;
+                    // Stop recording to send chunk
+                    try {
+                        mediaRecorderRef.current.stop();
+                    } catch (e) { }
+                }
             }
         }
 
-        return () => {
-            if (recognitionRef.current) {
-                try { recognitionRef.current.stop(); } catch (e) { }
-            }
-        };
-    }, [isMuted, callStatus]);
+        reqAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
+    };
 
-    // Start/Stop listening based on Mute state
+    const startListening = async () => {
+        if (isMuted || callStatus === "Thinking..." || callStatus === "Calling...") return;
+        if (deepgramAudioRef.current && !deepgramAudioRef.current.paused) return; // BOT IS TALKING
+
+        try {
+            if (!streamRef.current) {
+                streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+
+            // Setup WebAudio for VAD if not setup
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+                analyserRef.current = audioContextRef.current.createAnalyser();
+                analyserRef.current.fftSize = 256;
+                source.connect(analyserRef.current);
+            }
+
+            audioChunksRef.current = [];
+            const mediaRecorder = new MediaRecorder(streamRef.current);
+            mediaRecorderRef.current = mediaRecorder;
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    audioChunksRef.current.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                setIsListening(false);
+
+                // If blob is too small, it was just noise, restart listening directly
+                if (audioBlob.size > 8000) {
+                    await processAudio(audioBlob);
+                } else {
+                    if (!isMuted && !deepgramAudioRef.current) {
+                        startListening();
+                    }
+                }
+            };
+
+            mediaRecorder.start();
+            setIsListening(true);
+            isSpeakingRef.current = false;
+            silenceFramesRef.current = 0;
+
+            if (reqAnimationFrameRef.current) {
+                cancelAnimationFrame(reqAnimationFrameRef.current);
+            }
+            checkAudioLevel();
+
+        } catch (err) {
+            console.error("Microphone access error:", err);
+            // Handle error silently, the UI will just not show listening
+        }
+    };
+
+    const stopListening = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+            try { mediaRecorderRef.current.stop(); } catch (e) { }
+        }
+        if (reqAnimationFrameRef.current) {
+            cancelAnimationFrame(reqAnimationFrameRef.current);
+        }
+        setIsListening(false);
+    };
+
+    // Watch for mute/unmute to manually trigger listening again
     useEffect(() => {
-        if (callStatus === "Connected" && recognitionRef.current) {
+        if (callStatus === "Connected") {
             if (isMuted) {
-                try { recognitionRef.current.stop(); setIsListening(false); } catch (e) { }
+                stopListening();
             } else {
-                try { recognitionRef.current.start(); setIsListening(true); } catch (e) { }
+                startListening();
             }
         }
     }, [isMuted, callStatus]);
 
-    const speakInitialGreeting = () => {
-        const greeting = `Hello? Oye main ${bot.name} bol rahi hu.`;
-        speakText(greeting);
+    const processAudio = async (audioBlob: Blob) => {
+        setCallStatus("Thinking...");
+
+        try {
+            // 1. Send to Groq Whisper STT
+            const formData = new FormData();
+            formData.append("file", audioBlob, "audio.webm");
+
+            const sttResponse = await fetch("/api/stt", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!sttResponse.ok) throw new Error("STT Failed");
+            const sttData = await sttResponse.json();
+
+            if (!sttData.text || sttData.text.trim().length < 2) {
+                // If transcription is empty or gibberish, just go back to listening
+                setCallStatus("Connected");
+                if (!isMuted) startListening();
+                return;
+            }
+
+            // 2. Send transcription to Chat API
+            const chatResponse = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userInput: sttData.text + " (Note: This is a phone call, so reply playfully and purely verbally. Keep it extremely short, 1 or 2 lines max. DO NOT repeat your pet name constantly)",
+                    botName: bot.name,
+                    botRole: bot.role,
+                    botSpecifications: bot.specifications,
+                    mood_level: bot.mood_level,
+                    history: [],
+                    userProfile: {}
+                }),
+            });
+
+            const chatData = await chatResponse.json();
+
+            // 3. Speak the response
+            if (chatData.content) {
+                await speakText(chatData.content);
+            } else {
+                setCallStatus("Connected");
+                if (!isMuted) startListening();
+            }
+
+        } catch (error) {
+            console.error("Audio processing pipeline error:", error);
+            setCallStatus("Connected");
+            speakText("Arre network chala gaya kya?");
+        }
     };
 
     const speakText = async (text: string) => {
-        // Stop listening while speaking so the bot doesn't hear itself!
-        if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch (e) { }
-            setIsListening(false);
-        }
+        stopListening(); // Stop mic while AI is talking
 
-        // Determine intended gender based on the bot's role
         const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
         const roleLower = (bot.role || '').toLowerCase();
         const isFemale = femaleRoles.includes(roleLower);
 
         try {
-            // First try high-quality Deepgram TTS API
             const response = await fetch("/api/tts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -161,10 +272,11 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 audio.onended = () => {
                     URL.revokeObjectURL(url);
                     deepgramAudioRef.current = null;
+                    setCallStatus("Connected");
                     // Resume listening after speaking
-                    if (!isMuted && callStatus === "Connected" && recognitionRef.current) {
-                        try { recognitionRef.current.start(); setIsListening(true); } catch (e) { }
-                    }
+                    setTimeout(() => {
+                        if (!isMuted) startListening();
+                    }, 500);
                 };
 
                 if (deepgramAudioRef.current) {
@@ -174,50 +286,18 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
                 audio.play().catch(e => {
                     console.error("Audio playback blocked by browser:", e);
+                    setCallStatus("Connected");
+                    if (!isMuted) startListening();
                 });
-                return;
             } else {
-                console.warn("Deepgram TTS failed:", await response.text());
-                // Fallback action if needed (e.g. show an error toast) but no native voice
+                console.warn("TTS failed:", await response.text());
+                setCallStatus("Connected");
+                if (!isMuted) startListening();
             }
         } catch (error) {
-            console.error("Error with Deepgram TTS:", error);
-        }
-    };
-
-    const handleUserSaid = async (text: string) => {
-        if (!text.trim()) return;
-
-        setCallStatus("Thinking...");
-
-        try {
-            // Send to our existing Chat API (We just send the last text, no history for simplicity in calls)
-            const response = await fetch("/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userInput: text + " (Note: This is a phone call, so reply playfully and purely verbally. Keep it extremely short, 1 or 2 lines max.)",
-                    botName: bot.name,
-                    botRole: bot.role,
-                    botSpecifications: bot.specifications,
-                    mood_level: bot.mood_level,
-                    history: [],
-                    userProfile: {}
-                }),
-            });
-
-            const data = await response.json();
+            console.error("Error with TTS:", error);
             setCallStatus("Connected");
-
-            // Speak the response!
-            if (data.content) {
-                speakText(data.content);
-            }
-
-        } catch (error) {
-            console.error("API Error during call:", error);
-            setCallStatus("Connected");
-            speakText("Arre network chala gaya kya?");
+            if (!isMuted) startListening();
         }
     };
 

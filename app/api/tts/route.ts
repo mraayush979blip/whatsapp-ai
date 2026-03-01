@@ -1,31 +1,38 @@
 import { NextResponse } from "next/server";
 
-const DEEPGRAM_KEYS = [
-    process.env.DEEPGRAM_API_KEY,
-    process.env.DEEPGRAM_API_KEY_2
+const ELEVENLABS_KEYS = [
+    process.env.ELEVENLABS_API_KEY,
+    process.env.ELEVENLABS_API_KEY_2
 ].filter(Boolean);
 
 export async function POST(req: Request) {
     try {
         const { text, isFemale } = await req.json();
 
-        // Deepgram Aura Voices:
-        // Female conversational: aura-asteria-en, aura-luna-en, aura-stella-en, aura-hera-en
-        // Male conversational: aura-orion-en, aura-arcas-en, aura-perseus-en
-        const voice = isFemale ? "aura-asteria-en" : "aura-orion-en";
+        // ElevenLabs Voices
+        // Rachel (Female): 21m00Tcm4TlvDq8ikWAM
+        // Josh (Male): TxGEqnHWrfWFTfGW9XjX
+        const voiceId = isFemale ? "21m00Tcm4TlvDq8ikWAM" : "TxGEqnHWrfWFTfGW9XjX";
 
         let audioBuffer: ArrayBuffer | null = null;
         let lastError = null;
 
-        for (const key of DEEPGRAM_KEYS) {
+        for (const key of ELEVENLABS_KEYS) {
             try {
-                const response = await fetch(`https://api.deepgram.com/v1/speak?model=${voice}&encoding=mp3`, {
+                const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Token ${key}`,
+                        'xi-api-key': key as string,
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ text })
+                    body: JSON.stringify({
+                        text,
+                        model_id: "eleven_multilingual_v2", // crucial for Hindi
+                        voice_settings: {
+                            stability: 0.5,
+                            similarity_boost: 0.75
+                        }
+                    })
                 });
 
                 if (response.ok) {
@@ -33,17 +40,17 @@ export async function POST(req: Request) {
                     break;
                 } else {
                     const errorMsg = await response.text();
-                    lastError = new Error(`Deepgram API error: ${response.status} ${errorMsg}`);
-                    console.error("Deepgram key failed:", lastError.message);
+                    lastError = new Error(`ElevenLabs API error: ${response.status} ${errorMsg}`);
+                    console.error("ElevenLabs key failed:", lastError.message);
                 }
             } catch (err) {
                 lastError = err;
-                console.error("Deepgram request failed:", err);
+                console.error("ElevenLabs request failed:", err);
             }
         }
 
         if (!audioBuffer) {
-            throw lastError || new Error("All Deepgram keys failed.");
+            throw lastError || new Error("All ElevenLabs keys failed.");
         }
 
         return new NextResponse(audioBuffer, {
