@@ -139,15 +139,15 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             silenceFramesRef.current += 1;
 
             if (isSpeakingRef.current) {
-                // If they spoke and then went silent for ~1 second (approx 20 frames at 20fps)
-                if (silenceFramesRef.current > 20) {
+                // If they spoke and then went silent for just ~0.4 second (approx 8 frames at 20fps)
+                if (silenceFramesRef.current > 8) {
                     isSpeakingRef.current = false;
                     silenceFramesRef.current = 0;
                     try { mediaRecorderRef.current.stop(); } catch (e) { }
                 }
             } else {
-                // If they never spoke, but 4 seconds (80 frames at 20fps) have passed, force cut off to prompt AI
-                if (silenceFramesRef.current > 80) {
+                // If they never spoke, but 3 seconds (60 frames at 20fps) have passed, force cut off to prompt AI
+                if (silenceFramesRef.current > 60) {
                     silenceFramesRef.current = 0;
                     try { mediaRecorderRef.current.stop(); } catch (e) { }
                 }
