@@ -13,14 +13,9 @@ export function createClient() {
 
     return createBrowserClient(
         finalUrl,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookieOptions: {
-                name: 'gapshap-auth-token',
-                domain: isBrowser ? window.location.hostname : undefined,
-                path: '/'
-            }
-        }
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        // ✅ No custom cookieOptions — let Supabase use its default cookie name
+        // so the browser client and server-side middleware read the SAME cookie
     )
 }
 

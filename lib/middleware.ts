@@ -12,10 +12,7 @@ export async function updateSession(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
-            cookieOptions: {
-                name: 'gapshap-auth-token',
-                path: '/'
-            },
+            // ✅ No custom cookieOptions — use Supabase default cookie name
             cookies: {
                 get(name: string) {
                     return request.cookies.get(name)?.value
