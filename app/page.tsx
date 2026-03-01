@@ -94,7 +94,7 @@ export default function Home() {
     }
 
     return (
-        <main className="h-[100dvh] w-full bg-[#111b21] overflow-hidden flex">
+        <main className="fixed inset-0 w-full h-full bg-[#111b21] overflow-hidden flex">
             <div className="w-full h-full flex flex-row overflow-hidden relative bg-[#111b21]">
                 {!session ? (
                     <div className="w-full md:max-w-[450px] mx-auto h-full shadow-2xl">
