@@ -15,7 +15,7 @@ interface ChatBot {
     mood_level: number;
 }
 
-export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot: ChatBot) => void; userId: string }) {
+export default function ChatList({ onSelectChat, userId, selectedChatId }: { onSelectChat: (bot: ChatBot) => void; userId: string; selectedChatId?: string }) {
     const [bots, setBots] = useState<ChatBot[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -52,23 +52,36 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
 
     return (
         <div className="flex flex-col h-full bg-white relative">
-            {/* WhatsApp Header */}
-            <div className="bg-[#008069] text-white p-4 pb-0 z-10 shadow-md">
-                <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-xl font-bold tracking-tight">WhatsApp</h1>
-                    <div className="flex items-center space-x-5">
-                        <Search className="w-5 h-5 opacity-90" />
-                        <button onClick={() => supabase.auth.signOut()} title="Logout">
-                            <LogOut className="w-5 h-5 opacity-90" />
+            {/* WhatsApp Header: Mobile App Style vs Desktop Web Style */}
+            <div className="bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#54656f] p-4 md:p-3 pb-0 md:pb-3 z-10 shadow-md md:shadow-none md:border-b md:border-[#d1d7db] flex-shrink-0">
+                <div className="flex items-center justify-between mb-4 md:mb-0">
+                    <h1 className="text-xl font-bold tracking-tight md:hidden">WhatsApp</h1>
+
+                    {/* Desktop Avatar Placeholder */}
+                    <div className="hidden md:flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-gray-300">
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`} alt="Profile" className="w-full h-full rounded-full" />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-5 md:space-x-4 pr-1">
+                        <button className="hidden md:block hover:bg-gray-200 p-1.5 rounded-full" title="Communities">
+                            <MessageSquare className="w-5 h-5 text-[#54656f]" />
                         </button>
-                        <MoreVertical className="w-5 h-5 opacity-90" />
+                        <Search className="w-5 h-5 md:hidden opacity-90" />
+                        <button onClick={() => supabase.auth.signOut()} title="Logout" className="md:hover:bg-gray-200 md:p-1.5 rounded-full">
+                            <LogOut className="w-5 h-5 opacity-90 md:opacity-100 md:text-[#54656f]" />
+                        </button>
+                        <button className="md:hover:bg-gray-200 md:p-1.5 rounded-full">
+                            <MoreVertical className="w-5 h-5 opacity-90 md:opacity-100 md:text-[#54656f]" />
+                        </button>
                     </div>
                 </div>
 
-                {/* WhatsApp Tabs Mockup */}
-                <div className="flex text-center uppercase text-[13.5px] font-bold tracking-wider opacity-90 cursor-pointer">
-                    <div className="w-[10%] pb-2.5 flex justify-center border-b-3 border-white/40"><MessageSquare className="w-5 h-5" /></div>
-                    <div className="w-[30%] pb-2.5 border-b-3 border-white">CHATS</div>
+                {/* WhatsApp Tabs Mockup (Hidden on Desktop) */}
+                <div className="flex md:hidden text-center uppercase text-[13.5px] font-bold tracking-wider opacity-90 cursor-pointer">
+                    <div className="w-[10%] pb-2.5 flex justify-center border-b-[3px] border-white/40"><MessageSquare className="w-5 h-5" /></div>
+                    <div className="w-[30%] pb-2.5 border-b-[3px] border-white">CHATS</div>
                     <div
                         className="w-[30%] pb-2.5 hover:bg-[#ffffff11] transition-colors"
                         onClick={() => {
@@ -87,6 +100,14 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
                     >
                         CALLS
                     </div>
+                </div>
+            </div>
+
+            {/* Desktop Search Bar Mockup */}
+            <div className="hidden md:flex p-2 border-b border-[#d1d7db] bg-white">
+                <div className="flex items-center bg-[#f0f2f5] rounded-lg px-3 py-1.5 w-full">
+                    <Search className="w-4 h-4 text-[#54656f] mr-3" />
+                    <input type="text" placeholder="Search or start new chat" className="bg-transparent outline-none text-sm w-full text-[#111b21] placeholder-[#54656f]" />
                 </div>
             </div>
 
@@ -118,7 +139,7 @@ export default function ChatList({ onSelectChat, userId }: { onSelectChat: (bot:
                                 key={bot.id}
                                 whileTap={{ backgroundColor: "#f0f2f5" }}
                                 onClick={() => onSelectChat(bot)}
-                                className="flex items-center px-4 py-3.5 cursor-pointer relative hover:bg-gray-50/80 transition-colors"
+                                className={`flex items-center px-4 py-3.5 cursor-pointer relative transition-colors ${selectedChatId === bot.id ? 'bg-[#f0f2f5]' : 'hover:bg-gray-50/80 bg-white'}`}
                             >
                                 <div className="w-[52px] h-[52px] rounded-full bg-gray-200 mr-4 flex-shrink-0 relative border-[0.5px] border-gray-100 shadow-sm">
                                     <img src={bot.avatar_url} alt={bot.name} className="w-full h-full object-cover rounded-full" />

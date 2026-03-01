@@ -257,29 +257,29 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     return (
         <div className="flex flex-col h-full relative bg-[#E5DDD5] overflow-hidden" onClick={() => showMenu && setShowMenu(false)}>
             {/* Header Area */}
-            <div className="bg-[#008069] text-white px-3 py-2 flex items-center shadow-md z-30 min-h-[56px]">
-                <button onClick={onBack} className="flex items-center active:bg-[#ffffff22] rounded-full p-1 -ml-1 transition-colors">
+            <div className="bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#111b21] px-3 py-2 flex items-center shadow-md md:shadow-sm md:border-b md:border-[#d1d7db] z-30 min-h-[56px] md:min-h-[59px]">
+                <button onClick={onBack} className="flex items-center active:bg-[#ffffff22] rounded-full p-1 -ml-1 transition-colors md:hidden">
                     <ChevronLeft className="w-7 h-7 -mr-0.5" />
                 </button>
 
                 <button
                     onClick={() => setShowProfile(true)}
-                    className="flex-1 flex items-center overflow-hidden hover:bg-[#ffffff11] p-1 rounded-lg transition-colors cursor-pointer"
+                    className="flex-1 flex items-center overflow-hidden hover:bg-[#ffffff11] md:hover:bg-gray-200 p-1 rounded-lg md:rounded-none transition-colors cursor-pointer"
                 >
-                    <div className="w-[38px] h-[38px] rounded-full bg-gray-300 mr-2.5 flex-shrink-0 relative overflow-hidden border-[0.5px] border-white/20">
+                    <div className="w-[38px] h-[38px] rounded-full bg-gray-300 mr-2.5 flex-shrink-0 relative overflow-hidden border-[0.5px] border-white/20 md:border-none">
                         <img src={bot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 overflow-hidden text-left">
-                        <h2 className="text-[15.5px] font-bold truncate leading-tight tracking-tight">{bot.name}</h2>
-                        <p className="text-[11.5px] leading-tight text-[#f1f1f1cc] mt-0.5 font-medium">
+                        <h2 className="text-[15.5px] font-bold md:font-semibold md:text-[16px] truncate leading-tight tracking-tight">{bot.name}</h2>
+                        <p className="text-[11.5px] md:text-[13px] leading-tight text-[#f1f1f1cc] md:text-[#667781] mt-0.5 font-medium md:font-normal">
                             {isTyping ? "typing..." : "online"}
                         </p>
                     </div>
                 </button>
 
                 <div className="flex space-x-4 items-center pl-2 relative pr-1">
-                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform"><Video className="w-[20px] h-[20px] fill-white" /></button>
-                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white" /></button>
+                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform"><Video className="w-[20px] h-[20px] fill-white md:fill-[#54656f] text-transparent md:text-[#54656f]" /></button>
+                    <button onClick={handleCallAlert} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white md:fill-[#54656f] text-transparent md:text-[#54656f]" /></button>
 
                     <div className="relative">
                         <button
@@ -287,10 +287,10 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                                 e.stopPropagation();
                                 setShowMenu(!showMenu);
                             }}
-                            className="hover:bg-[#ffffff22] p-1.5 rounded-full transition-colors active:scale-90"
+                            className="hover:bg-[#ffffff22] md:hover:bg-gray-200 p-1.5 rounded-full transition-colors active:scale-90"
                             title="Menu"
                         >
-                            <MoreVertical className="w-[22px] h-[22px]" />
+                            <MoreVertical className="w-[22px] h-[22px] text-white md:text-[#54656f]" />
                         </button>
 
                         {/* Dropdown Menu */}
@@ -358,22 +358,26 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             </div>
 
             {/* Input Area */}
-            <div className="px-2 py-3 bg-[#E5DDD5] flex items-center space-x-1.5 z-10">
-                <div className="flex-1 bg-white rounded-[24px] px-3 py-2 shadow-sm flex items-center">
-                    <Smile className="w-6 h-6 text-gray-400 mr-2" />
+            <div className="px-2 py-3 md:px-4 md:py-2.5 bg-[#E5DDD5] md:bg-[#f0f2f5] flex items-center space-x-1.5 md:space-x-3 z-10 md:mb-1">
+                <Smile className="w-7 h-7 text-gray-500 hidden md:block cursor-pointer active:scale-90 mx-1" />
+                <button onClick={() => fileInputRef.current?.click()} className="hidden md:block active:scale-90 mx-1">
+                    <Paperclip className="w-6 h-6 text-gray-500" />
+                </button>
+                <div className="flex-1 bg-white rounded-[24px] md:rounded-lg px-3 py-2 shadow-sm flex items-center md:py-2.5">
+                    <Smile className="w-6 h-6 text-gray-400 mr-2 md:hidden" />
                     <input
                         type="text"
-                        className="flex-1 outline-none text-[15px] bg-transparent placeholder-gray-400"
+                        className="flex-1 outline-none text-[15px] bg-transparent md:text-[15px] text-[#111b21] placeholder-[#54656f]"
                         placeholder="Type a message"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                     />
-                    <button onClick={() => fileInputRef.current?.click()}>
+                    <button onClick={() => fileInputRef.current?.click()} className="md:hidden">
                         <Paperclip className="w-5 h-5 text-gray-500 rotate-[-45deg] mx-1" />
                     </button>
                     <button onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="w-5 h-5 text-gray-500 mx-1" />
+                        <Camera className="w-5 h-5 text-gray-500 mx-1 md:hidden" />
                     </button>
                     <input
                         type="file"
@@ -392,12 +396,12 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             alert("Voice Note: Dev is working on it! ☕💸");
                         }
                     }}
-                    className="w-12 h-12 bg-[#00a884] rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform shrink-0 touch-none select-none"
+                    className="w-12 h-12 md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-md md:shadow-none active:scale-95 transition-transform shrink-0 touch-none select-none"
                 >
                     {input.trim() ? (
-                        <Send className="w-6 h-6 text-white ml-0.5" />
+                        <Send className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#54656f] ml-0.5 md:ml-0" />
                     ) : (
-                        <Mic className="w-6 h-6 text-white" />
+                        <Mic className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#54656f]" />
                     )}
                 </button>
             </div>
