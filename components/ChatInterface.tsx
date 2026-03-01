@@ -56,6 +56,14 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     });
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const [isUploading, setIsUploading] = useState(false);
+
+    // Voice Notes state
+    const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const voiceNoteTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<BlobPart[]>([]);
+
     const scrollRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -402,6 +410,151 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         }
     };
 
+    const handleVoiceNoteClick = async () => {
+        if (isRecordingVoiceNote) {
+            // Stop recording
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+                mediaRecorderRef.current.stop();
+            }
+            if (voiceNoteTimerRef.current) clearInterval(voiceNoteTimerRef.current);
+            setIsRecordingVoiceNote(false);
+            setRecordingDuration(0);
+        } else {
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mediaRecorder = new MediaRecorder(stream);
+                mediaRecorderRef.current = mediaRecorder;
+                audioChunksRef.current = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunksRef.current.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Turn off tracks
+                    stream.getTracks().forEach(track => track.stop());
+
+                    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                    if (audioBlob.size < 500) return; // Too short/empty
+
+                    await uploadVoiceNote(audioBlob);
+                };
+
+                mediaRecorder.start();
+                setIsRecordingVoiceNote(true);
+                setRecordingDuration(0);
+                voiceNoteTimerRef.current = setInterval(() => {
+                    setRecordingDuration(prev => prev + 1);
+                }, 1000);
+
+            } catch (err) {
+                console.error("Mic access denied", err);
+                alert("Microphone permission needed for Voice Notes!");
+            }
+        }
+    };
+
+    const uploadVoiceNote = async (audioBlob: Blob) => {
+        try {
+            setIsUploading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not logged in");
+
+            const fileName = `${uuidv4()}.webm`;
+            const filePath = `${user.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('gapshap_media')
+                .upload(filePath, audioBlob);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('gapshap_media')
+                .getPublicUrl(filePath);
+
+            const userMsgId = Date.now().toString();
+            const userMsg: Message = {
+                id: userMsgId,
+                role: "user",
+                content: "Sent a voice note 🎤",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                status: "sent",
+                type: "audio",
+                media_url: publicUrl
+            };
+
+            setMessages((prev) => [...prev, userMsg]);
+
+            // Save to DB
+            await supabase.from("messages").insert({
+                chatbot_id: bot.id,
+                user_id: user.id,
+                role: "user",
+                content: "Sent a voice note 🎤",
+                type: "audio",
+                media_url: publicUrl
+            });
+
+            // Trigger AI to respond to Voice Note. Send audio to STT first!
+            setIsTyping(true);
+            const formData = new FormData();
+            formData.append("file", audioBlob, "audio.webm");
+
+            let transcribedText = "Sent a voice note";
+            try {
+                const sttResponse = await fetch("/api/stt", {
+                    method: "POST",
+                    body: formData
+                });
+                if (sttResponse.ok) {
+                    const sttData = await sttResponse.json();
+                    if (sttData.text) transcribedText = `I sent you a voice note saying: "${sttData.text}". Please talk back to me about it!`;
+                }
+            } catch (e) { }
+
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userInput: transcribedText,
+                    botName: bot.name,
+                    botRole: bot.role,
+                    botSpecifications: bot.specifications,
+                    mood_level: bot.mood_level,
+                    history: messages.map(m => ({ role: m.role === "bot" ? "assistant" : "user", content: m.content })),
+                    userProfile: { name: "User", gender: "Unknown", bio: "No specific details." }
+                }),
+            });
+
+            const aiData = await response.json();
+
+            const botMsg: Message = {
+                id: Date.now().toString(),
+                role: "bot",
+                content: aiData.content || "Acha.",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+
+            setMessages((prev) => [...prev, botMsg]);
+            setIsTyping(false);
+
+            await supabase.from("messages").insert({
+                chatbot_id: bot.id,
+                user_id: user.id,
+                role: "bot",
+                content: botMsg.content
+            });
+
+        } catch (error) {
+            console.error(error);
+            alert("Voice note upload failed.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-[#efeae2] md:bg-[#0b141a] relative">
             {/* Header */}
@@ -535,20 +688,27 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     <Plus className="w-6 h-6 md:w-7 md:h-7 mb-0.5 md:mb-0" />
                 </button>
 
-                <div className="flex-1 bg-white md:bg-[#2a3942] rounded-3xl md:rounded-lg flex items-end min-h-[42px] max-h-[120px] overflow-hidden shadow-sm md:shadow-none border-[0.5px] border-gray-200 md:border-none mb-1 md:my-auto transition-all">
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
-                        placeholder="Message"
-                        className="flex-1 bg-transparent px-4 py-[11px] md:py-[10px] outline-none resize-none no-scrollbar text-[16px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef] leading-snug w-full"
-                        rows={1}
-                    />
+                <div className="flex-1 bg-white md:bg-[#2a3942] rounded-3xl md:rounded-lg flex items-center min-h-[42px] max-h-[120px] overflow-hidden shadow-sm md:shadow-none border-[0.5px] border-gray-200 md:border-none mb-1 md:my-auto transition-all">
+                    {isRecordingVoiceNote ? (
+                        <div className="flex-1 flex items-center px-4 py-[10px] text-red-500 font-medium animate-pulse">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 mr-2" />
+                            Recording... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                        </div>
+                    ) : (
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            placeholder="Message"
+                            className="flex-1 bg-transparent px-4 py-[11px] md:py-[10px] outline-none resize-none no-scrollbar text-[16px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef] leading-snug w-full"
+                            rows={1}
+                        />
+                    )}
 
                     <div className="flex items-center space-x-3.5 text-[#54656f] md:text-[#aebac1] pr-4 pb-[11px] md:hidden shrink-0">
                         <button onClick={() => fileInputRef.current?.click()}>
@@ -579,13 +739,15 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             if (input.trim()) {
                                 handleSendMessage();
                             } else {
-                                setDevFeature({ isOpen: true, name: "Voice Notes" });
+                                handleVoiceNoteClick();
                             }
                         }}
                         className="w-[48px] h-[48px] md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-sm md:shadow-none active:scale-95 transition-transform touch-none select-none z-20"
                     >
                         {input.trim() ? (
                             <Send className="w-[20px] h-[20px] md:w-6 md:h-6 text-white md:text-[#aebac1] ml-1 md:ml-0" />
+                        ) : isRecordingVoiceNote ? (
+                            <div className="w-[18px] h-[18px] md:w-5 md:h-5 bg-white md:bg-[#aebac1] rounded-sm" />
                         ) : (
                             <Mic className="w-[22px] h-[22px] md:w-6 md:h-6 text-white md:text-[#aebac1]" />
                         )}
