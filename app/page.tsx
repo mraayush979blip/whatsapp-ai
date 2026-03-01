@@ -150,7 +150,10 @@ export default function Home() {
                                 <ChatInterface
                                     bot={selectedChat}
                                     onBack={() => setSelectedChat(null)}
-                                    onBotDeleted={() => setSelectedChat(null)}
+                                    onBotDeleted={() => {
+                                        localStorage.removeItem("last_chat");
+                                        window.location.reload();
+                                    }}
                                 />
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-center bg-[#f0f2f5] md:bg-[#222e35] p-8 border-b-8 border-[#00a884] md:border-transparent">

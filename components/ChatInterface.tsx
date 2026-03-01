@@ -438,15 +438,15 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             </div>
 
             {/* Input Area */}
-            <div className="bg-[#f0f0f0] md:bg-[#202c33] p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-end space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px]">
+            <div className="bg-[#f0f0f0] md:bg-[#202c33] p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end space-x-1 md:space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px] mt-auto">
                 <button
                     onClick={() => setDevFeature({ isOpen: true, name: "Media Sharing" })}
-                    className="p-3 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform"
+                    className="p-2 md:p-3 md:pb-3 pb-2.5 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform shrink-0"
                 >
-                    <Plus className="w-6 h-6 md:w-7 md:h-7" />
+                    <Plus className="w-6 h-6 md:w-7 md:h-7 mb-0.5 md:mb-0" />
                 </button>
 
-                <div className="flex-1 bg-white md:bg-[#2a3942] rounded-3xl md:rounded-lg flex flex-col justify-center min-h-[42px] max-h-[120px] overflow-hidden my-auto shadow-sm md:shadow-none border-[0.5px] border-gray-200 md:border-none">
+                <div className="flex-1 bg-white md:bg-[#2a3942] rounded-3xl md:rounded-lg flex items-end min-h-[42px] max-h-[120px] overflow-hidden shadow-sm md:shadow-none border-[0.5px] border-gray-200 md:border-none mb-1 md:my-auto transition-all">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -456,44 +456,47 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                                 handleSendMessage();
                             }
                         }}
-                        placeholder="Type a message"
-                        className="w-full bg-transparent px-4 py-3 md:py-[10px] outline-none resize-none no-scrollbar text-[15px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef] flex items-center leading-snug"
+                        placeholder="Message"
+                        className="flex-1 bg-transparent px-4 py-[11px] md:py-[10px] outline-none resize-none no-scrollbar text-[16px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef] leading-snug w-full"
                         rows={1}
                     />
+
+                    <div className="flex items-center space-x-3.5 text-[#54656f] md:text-[#aebac1] pr-4 pb-[11px] md:hidden shrink-0">
+                        <button onClick={() => fileInputRef.current?.click()}>
+                            <Paperclip className="w-5 h-5 -rotate-45" />
+                        </button>
+                        <button onClick={() => fileInputRef.current?.click()}>
+                            <Camera className="w-[22px] h-[22px]" />
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            accept="image/*"
+                        />
+                    </div>
                 </div>
 
-                <div className="flex items-center space-x-1.5 md:space-x-3 text-[#54656f] md:text-[#aebac1] px-1 md:hidden">
-                    <button onClick={() => fileInputRef.current?.click()}>
-                        <Paperclip className="w-5 h-5 md:w-6 md:h-6 rotate-[-45deg] mx-1" />
+                <div className="flex shrink-0 items-center justify-center mb-1 md:my-auto ml-1 mr-1">
+                    <button
+                        onPointerDown={(e) => {
+                            e.preventDefault(); // Keeps keyboard open on mobile
+                            if (input.trim()) {
+                                handleSendMessage();
+                            } else {
+                                setDevFeature({ isOpen: true, name: "Voice Notes" });
+                            }
+                        }}
+                        className="w-[48px] h-[48px] md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-sm md:shadow-none active:scale-95 transition-transform touch-none select-none z-20"
+                    >
+                        {input.trim() ? (
+                            <Send className="w-[20px] h-[20px] md:w-6 md:h-6 text-white md:text-[#aebac1] ml-1 md:ml-0" />
+                        ) : (
+                            <Mic className="w-[22px] h-[22px] md:w-6 md:h-6 text-white md:text-[#aebac1]" />
+                        )}
                     </button>
-                    <button onClick={() => fileInputRef.current?.click()}>
-                        <Camera className="w-5 h-5 md:w-6 md:h-6 mx-1" />
-                    </button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept="image/*"
-                    />
                 </div>
-                <button
-                    onPointerDown={(e) => {
-                        e.preventDefault(); // Keeps keyboard open on mobile
-                        if (input.trim()) {
-                            handleSendMessage();
-                        } else {
-                            setDevFeature({ isOpen: true, name: "Voice Notes" });
-                        }
-                    }}
-                    className="w-12 h-12 md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-md md:shadow-none active:scale-95 transition-transform shrink-0 touch-none select-none md:ml-0 md:mr-1 absolute right-2 bottom-3 md:relative md:right-auto md:bottom-auto md:my-auto z-20"
-                >
-                    {input.trim() ? (
-                        <Send className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#aebac1] ml-0.5 md:ml-0" />
-                    ) : (
-                        <Mic className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#aebac1]" />
-                    )}
-                </button>
             </div>
 
             <div className="absolute inset-0 chat-bg opacity-[0.05] md:opacity-[0.02] pointer-events-none" />
