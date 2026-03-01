@@ -3,23 +3,37 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 
 export default function PWAInstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [showPrompt, setShowPrompt] = useState(false);
 
     useEffect(() => {
-        const handler = (e: any) => {
+        const handler = async (e: any) => {
             e.preventDefault();
+
+            // Prevent showing on login screen
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
             setDeferredPrompt(e);
             // Show prompt after a short delay
             setTimeout(() => setShowPrompt(true), 3000);
         };
 
-        window.addEventListener("beforeinstallprompt", handler);
+        const manualHandler = () => {
+            if (deferredPrompt) setShowPrompt(true);
+        };
 
-        return () => window.removeEventListener("beforeinstallprompt", handler);
-    }, []);
+        window.addEventListener("beforeinstallprompt", handler);
+        window.addEventListener("show-install-prompt", manualHandler);
+
+        return () => {
+            window.removeEventListener("beforeinstallprompt", handler);
+            window.removeEventListener("show-install-prompt", manualHandler);
+        };
+    }, [deferredPrompt]);
 
     const handleInstall = async () => {
         if (!deferredPrompt) return;
