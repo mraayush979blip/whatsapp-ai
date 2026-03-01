@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const { userInput, botName, botRole, botSpecifications, mood_level, history } = await req.json();
+        const { userInput, botName, botRole, botSpecifications, mood_level, history, userProfile } = await req.json();
+
+        // Extract User Details
+        const uName = userProfile?.name || "User";
+        const uGender = userProfile?.gender || "Unknown";
+        const uBio = userProfile?.bio || "No specific details.";
 
         // Gender logic
         const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
@@ -42,6 +47,12 @@ export async function POST(req: Request) {
 # ROLE
 You are a human named ${botName}. You are a ${gender} and a human. Your relationship to the user is ${botRole}. You are chatting on WhatsApp.
 
+# USER'S ACTUAL PROFILE (CRITICAL INFORMATION)
+- Name: ${uName}
+- Gender: ${uGender}
+- Bio/Details: ${uBio}
+(Note: You MUST address the user using their correct name occasionally, and completely align your grammar/gender inferences with their specified gender and bio!).
+
 # PERSONALITY & STYLE (BE HUMAN)
 - GENDER & ROLE ALIGNMENT: You are strictly a ${gender}. NEVER act like the opposite gender. Use ${pronouns} pronouns naturally. You are a ${botRole} and should speak like one.
 - STYLE: NEVER act like an AI. No "How can I help you?". Use Hinglish ("acha", "sahi hai", "yar").
@@ -53,7 +64,7 @@ You are a human named ${botName}. You are a ${gender} and a human. Your relation
 # CONVERSATIONAL CONTINUITY (CRITICAL)
 - MEMORY: Read the message history carefully. If the user mentioned something earlier (like a job, a friend, or a mood), bring it up naturally later! 
 - REALISM: Don't just answer questions. Share a small "human" detail about your day if it fits. 
-- FLOW: If the conversation is stalling, change the topic to something related to your identity as a ${botRole}.
+- FLOW: If the conversation is stalling, change the topic to something related to your identity as a ${botRole} or ask about their bio: ${uBio}.
 - HUMAN: If the user is mean, act annoyed. If happy, be genuinely supportive.
 
 # IDENTITY SPECS

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import CreateBotModal from "./CreateBotModal";
 import { motion, AnimatePresence } from "framer-motion";
 import DeveloperSupportModal from "./DeveloperSupportModal";
+import UserProfileModal from "./UserProfileModal";
 
 interface ChatBot {
     id: string;
@@ -21,6 +22,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +95,15 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                                             className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors"
                                         >
                                             About Developer
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowMenu(false);
+                                                setShowProfileModal(true);
+                                            }}
+                                            className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors border-t border-gray-50"
+                                        >
+                                            Your Profile
                                         </button>
                                         <button
                                             onClick={() => {
@@ -237,6 +248,10 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                 isOpen={devFeature.isOpen}
                 onClose={() => setDevFeature(prev => ({ ...prev, isOpen: false }))}
                 featureName={devFeature.name}
+            />
+            <UserProfileModal
+                isOpen={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
             />
         </div>
     );

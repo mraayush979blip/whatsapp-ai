@@ -166,6 +166,10 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
         // 2.5 DB Auto-Pruning (Keep database small for free tier)
         const pruneOldMessages = async () => {
+            // Optimization: Only run this heavy operation 5% of the time 
+            // OR if the client explicitly sees it's growing too large
+            if (Math.random() > 0.05 && messages.length < 145) return;
+
             // A. Row-limit (keep last 150)
             const { count } = await supabase
                 .from("messages")
@@ -194,7 +198,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 .eq("chatbot_id", bot.id)
                 .lt("created_at", sevenDaysAgo);
         };
-        pruneOldMessages();
+        // Fire and forget, don't await so UI doesn't lag
+        pruneOldMessages().catch(console.error);
 
         setTimeout(() => {
             setIsTyping(true);
@@ -207,6 +212,17 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 content: m.content
             }));
 
+            let userProfile = { name: "User", gender: "Unknown", bio: "No specific details." };
+            try {
+                const storedProfile = localStorage.getItem("gapshap_user_profile");
+                if (storedProfile) {
+                    const parsed = JSON.parse(storedProfile);
+                    if (parsed.name) userProfile.name = parsed.name;
+                    if (parsed.gender) userProfile.gender = parsed.gender;
+                    if (parsed.bio) userProfile.bio = parsed.bio;
+                }
+            } catch (e) { }
+
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -216,7 +232,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     botRole: bot.role,
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
-                    history: chatHistoryForAPI // Passing history here
+                    history: chatHistoryForAPI,
+                    userProfile
                 }),
             });
 
