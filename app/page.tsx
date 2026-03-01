@@ -79,11 +79,8 @@ export default function Home() {
     }
 
     return (
-        <main className="min-h-[100dvh] bg-[#f0f2f5] flex items-center justify-center p-0 md:py-4 lg:py-8 overflow-hidden">
-            {/* Desktop Background Strip */}
-            <div className="hidden md:block absolute top-0 left-0 w-full h-[127px] bg-[#00a884] -z-10" />
-
-            <div className="w-full h-[100dvh] md:w-full md:max-w-none lg:max-w-[1600px] lg:w-[95vw] md:h-[95vh] lg:rounded-md shadow-2xl overflow-hidden relative bg-white flex flex-row border-0 md:border border-gray-600 m-0 lg:mx-auto">
+        <main className="h-[100dvh] w-full bg-[#111b21] overflow-hidden flex">
+            <div className="w-full h-full flex flex-row overflow-hidden relative bg-[#111b21]">
                 {!session ? (
                     <div className="w-full md:max-w-[450px] mx-auto h-full shadow-2xl">
                         <LoginScreen />

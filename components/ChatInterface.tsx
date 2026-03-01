@@ -422,7 +422,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             }
                         }}
                         placeholder="Type a message"
-                        className="w-full bg-transparent px-4 py-3 outline-none resize-none no-scrollbar text-[15px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef]"
+                        className="w-full bg-transparent px-4 py-3 md:py-[10px] outline-none resize-none no-scrollbar text-[15px] placeholder-[#8696a0] text-[#111b21] md:text-[#e9edef] flex items-center leading-snug"
                         rows={1}
                     />
                 </div>
@@ -451,7 +451,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             setDevFeature({ isOpen: true, name: "Voice Notes" });
                         }
                     }}
-                    className="w-12 h-12 md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-md md:shadow-none active:scale-95 transition-transform shrink-0 touch-none select-none md:ml-2 absolute right-2 bottom-3 md:relative md:right-auto md:bottom-auto md:mb-1.5 z-20"
+                    className="w-12 h-12 md:w-10 md:h-10 md:bg-transparent bg-[#00a884] rounded-full flex items-center justify-center shadow-md md:shadow-none active:scale-95 transition-transform shrink-0 touch-none select-none md:ml-0 md:mr-1 absolute right-2 bottom-3 md:relative md:right-auto md:bottom-auto md:my-auto z-20"
                 >
                     {input.trim() ? (
                         <Send className="w-6 h-6 md:w-7 md:h-7 text-white md:text-[#aebac1] ml-0.5 md:ml-0" />
