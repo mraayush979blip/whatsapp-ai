@@ -10,6 +10,7 @@ import BotProfileModal from "./BotProfileModal";
 import DeveloperSupportModal from "./DeveloperSupportModal";
 import ChatThemeModal, { THEMES } from "./ChatThemeModal";
 import VoiceCallScreen from "./VoiceCallScreen";
+import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
     id?: string;
@@ -54,6 +55,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         themeId: typeof window !== "undefined" ? localStorage.getItem("chat_theme") || "default" : "default"
     });
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
+    const [isUploading, setIsUploading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -307,12 +309,97 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         const file = event.target.files?.[0];
         if (!file) return;
 
-        // Dev check: Bucket check
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            setIsUploading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not logged in");
 
-        setDevFeature({ isOpen: true, name: "Media Sharing" });
-        // Logic for uploading will go here once user confirms bucket creation
+            // 1. Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${uuidv4()}.${fileExt}`;
+            const filePath = `${user.id}/${fileName}`;
+
+            const { data, error: uploadError } = await supabase.storage
+                .from('gapshap_media')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('gapshap_media')
+                .getPublicUrl(filePath);
+
+            // 3. Immediately send as a message to the bot
+
+            const userMsgId = Date.now().toString();
+            const userMsg: Message = {
+                id: userMsgId,
+                role: "user",
+                content: "Sent a photo 📸 (Check the image above)",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                status: "sent",
+                type: "image",
+                media_url: publicUrl
+            };
+
+            setMessages((prev) => [...prev, userMsg]);
+
+            audioRef.current?.play().catch(() => { });
+
+            // Save to DB
+            await supabase.from("messages").insert({
+                chatbot_id: bot.id,
+                user_id: user.id,
+                role: "user",
+                content: "Sent a photo 📸",
+                type: "image",
+                media_url: publicUrl
+            });
+
+            // 4. Trigger AI Response about the photo
+            setIsTyping(true);
+
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userInput: "I just sent you a photo! What do you think?",
+                    botName: bot.name,
+                    botRole: bot.role,
+                    botSpecifications: bot.specifications,
+                    mood_level: bot.mood_level,
+                    history: messages.map(m => ({ role: m.role === "bot" ? "assistant" : "user", content: m.content })),
+                    userProfile: { name: "User", gender: "Unknown", bio: "No specific details." }
+                }),
+            });
+
+            const aiData = await response.json();
+
+            const botMsg: Message = {
+                id: Date.now().toString(),
+                role: "bot",
+                content: aiData.content || "Arre wah! Sahi pic hai.",
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+
+            setMessages((prev) => [...prev, botMsg]);
+            setIsTyping(false);
+
+            await supabase.from("messages").insert({
+                chatbot_id: bot.id,
+                user_id: user.id,
+                role: "bot",
+                content: botMsg.content
+            });
+
+        } catch (error) {
+            console.error(error);
+            alert("Bhiya photo upload mein problem aa gayi. Sayad storage limit full hai (50MB).");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
     };
 
     return (
@@ -468,7 +555,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             <Paperclip className="w-5 h-5 -rotate-45" />
                         </button>
                         <button onClick={() => fileInputRef.current?.click()}>
-                            <Camera className="w-[22px] h-[22px]" />
+                            {isUploading ? (
+                                <div className="w-[22px] h-[22px] border-2 border-[#aebac1] border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <Camera className="w-[22px] h-[22px]" />
+                            )}
                         </button>
                         <input
                             type="file"
@@ -476,6 +567,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                             onChange={handleFileUpload}
                             className="hidden"
                             accept="image/*"
+                            disabled={isUploading}
                         />
                     </div>
                 </div>
