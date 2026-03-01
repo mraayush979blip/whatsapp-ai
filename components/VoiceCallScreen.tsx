@@ -35,6 +35,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
     const totalFramesRef = useRef<number>(0); // absolute duration tracker
     const vadIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const audioChunksRef = useRef<BlobPart[]>([]);
+    const callHistoryRef = useRef<{ role: string; content: string }[]>([]); // in-call memory
 
     // Call Timer & Initial Ringing Simulation
     useEffect(() => {
@@ -266,7 +267,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 return;
             }
 
-            // 2. Send transcription to Chat API
+            // 2. Send transcription to Chat API - pass in-call history so bot remembers
             const chatResponse = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -276,10 +277,9 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                     botRole: bot.role,
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
-                    history: [],
+                    history: callHistoryRef.current.slice(-10), // Last 10 turns of THIS call
                     userProfile: {},
                     isVoiceCall: true
-
                 }),
             });
 
@@ -289,7 +289,11 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             if (!isMountedRef.current) return;
 
             if (chatData.content) {
-                // Strip emojis from the final output before giving it to STT so it doesn't try to read them out
+                // Update in-call history so bot remembers this exchange next turn
+                callHistoryRef.current.push({ role: "user", content: sttData.text });
+                callHistoryRef.current.push({ role: "assistant", content: chatData.content });
+
+                // Strip emojis from the final output before giving it to TTS
                 const sanitizedContent = chatData.content.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
                 await speakText(sanitizedContent);
             } else {
