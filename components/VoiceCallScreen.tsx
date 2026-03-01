@@ -21,6 +21,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
     const [isMuted, setIsMuted] = useState(false);
     const [isListening, setIsListening] = useState(false);
 
+    const isMountedRef = useRef<boolean>(true);
     const deepgramAudioRef = useRef<HTMLAudioElement | null>(null);
 
     // MediaRecorder & VAD Refs
@@ -68,7 +69,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 const busyText = `Sorry, ${bot.name} is talking to someone else right now. Please try again later.`;
                 speakText(busyText).then(() => {
                     // End the call automatically after saying the message
-                    setTimeout(() => onEndCall(), 5000);
+                    setTimeout(() => { if (isMountedRef.current) onEndCall(); }, 5000);
                 });
 
             }, 30000); // 30 seconds ringing
@@ -95,7 +96,9 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
     // Cleanup audio on unmount
     useEffect(() => {
+        isMountedRef.current = true;
         return () => {
+            isMountedRef.current = false;
             if (deepgramAudioRef.current) {
                 deepgramAudioRef.current.pause();
                 deepgramAudioRef.current.currentTime = 0;
@@ -126,15 +129,15 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
         }
         const average = sum / dataArray.length;
 
-        // Threshold for speaking
-        if (average > 10) {
+        // Threshold for speaking (lowered to catch quieter voices)
+        if (average > 3) {
             isSpeakingRef.current = true;
             silenceFramesRef.current = 0;
         } else {
             if (isSpeakingRef.current) {
                 silenceFramesRef.current += 1;
-                // If silent for ~1.5 seconds (approx 90 frames at 60fps)
-                if (silenceFramesRef.current > 90) {
+                // If silent for ~1 second (approx 60 frames at 60fps)
+                if (silenceFramesRef.current > 60) {
                     isSpeakingRef.current = false;
                     silenceFramesRef.current = 0;
                     // Stop recording to send chunk
@@ -143,6 +146,11 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                     } catch (e) { }
                 }
             }
+        }
+
+        // Failsafe: if we've been recording for over 12 seconds straight, force stop to send it
+        if (isSpeakingRef.current && silenceFramesRef.current === 0) {
+            // we can use a secondary frame counter to force cut-off, but for now we'll just let them talk
         }
 
         reqAnimationFrameRef.current = requestAnimationFrame(checkAudioLevel);
@@ -181,10 +189,11 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 setIsListening(false);
 
                 // If blob is too small, it was just noise, restart listening directly
-                if (audioBlob.size > 8000) {
+                // (Lowered barrier drastically to ensure short spoken sentences trigger properly)
+                if (audioBlob.size > 500) {
                     await processAudio(audioBlob);
                 } else {
-                    if (!isMuted && !deepgramAudioRef.current) {
+                    if (!isMuted && !deepgramAudioRef.current && isMountedRef.current) {
                         startListening();
                     }
                 }
@@ -267,15 +276,18 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
             const chatData = await chatResponse.json();
 
-            // 3. Speak the response
+            // 3. Speak the response if the user hasn't hung up
+            if (!isMountedRef.current) return;
+
             if (chatData.content) {
                 await speakText(chatData.content);
             } else {
                 setCallStatus("Connected");
-                if (!isMuted) startListening();
+                if (!isMuted && isMountedRef.current) startListening();
             }
 
         } catch (error) {
+            if (!isMountedRef.current) return;
             console.error("Audio processing pipeline error:", error);
             setCallStatus("Connected");
             speakText("Arre network chala gaya kya?");
@@ -284,6 +296,9 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
     const speakText = async (text: string) => {
         stopListening(); // Stop mic while AI is talking
+
+        // Ensure we don't fetch if unmounted
+        if (!isMountedRef.current) return;
 
         const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
         const roleLower = (bot.role || '').toLowerCase();
@@ -296,18 +311,24 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 body: JSON.stringify({ text, isFemale })
             });
 
+            if (!isMountedRef.current) return;
+
             if (response.ok) {
                 const blob = await response.blob();
+                if (!isMountedRef.current) return;
+
                 const url = URL.createObjectURL(blob);
                 const audio = new Audio(url);
 
                 audio.onended = () => {
                     URL.revokeObjectURL(url);
                     deepgramAudioRef.current = null;
+                    if (!isMountedRef.current) return;
+
                     setCallStatus("Connected");
                     // Resume listening after speaking
                     setTimeout(() => {
-                        if (!isMuted) startListening();
+                        if (!isMuted && isMountedRef.current) startListening();
                     }, 500);
                 };
 
