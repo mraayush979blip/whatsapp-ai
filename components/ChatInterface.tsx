@@ -11,11 +11,13 @@ import DeveloperSupportModal from "./DeveloperSupportModal";
 import ChatThemeModal, { THEMES } from "./ChatThemeModal";
 
 interface Message {
+    id?: string;
     role: "user" | "bot";
     content: string;
     time: string;
     type?: "text" | "image" | "audio";
     media_url?: string;
+    status?: "sent" | "delivered" | "read";
 }
 
 interface ChatInterfaceProps {
@@ -139,13 +141,22 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     const handleSendMessage = async () => {
         if (!input.trim()) return;
 
+        // Implement hard limit of 50 messages to force users to clear chat
+        if (messages.length >= 50) {
+            alert("Bhiya storage full ho gaya hai! 😅 Please click on the 3-dots menu and select 'Clear chat' to proceed further.");
+            return;
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        const userMsgId = Date.now().toString();
         const userMsg: Message = {
+            id: userMsgId,
             role: "user",
             content: input,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            status: "sent"
         };
 
         setMessages((prev) => [...prev, userMsg]);
@@ -155,6 +166,17 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         try {
             audioRef.current?.play().catch(() => { });
         } catch (e) { }
+
+        // Start local read receipt tick simulation
+        // 1. Double tap (delivered)
+        setTimeout(() => {
+            setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "delivered" } : m));
+        }, 1500);
+
+        // 2. Blue tick (read)
+        setTimeout(() => {
+            setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "read" } : m));
+        }, 4500);
 
         // 2. Save User Message to Supabase
         await supabase.from("messages").insert({
@@ -201,9 +223,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         // Fire and forget, don't await so UI doesn't lag
         pruneOldMessages().catch(console.error);
 
-        setTimeout(() => {
-            setIsTyping(true);
-        }, 600);
+        // NOTE: we removed the static 600ms setTimeout for isTyping. Typing is now delayed until blue tick.
 
         try {
             // 3. Send full history to API for context
@@ -239,24 +259,39 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
             const data = await response.json();
 
-            setTimeout(async () => {
-                const botMsg: Message = {
-                    role: "bot",
-                    content: data.content,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                };
-                setMessages((prev) => [...prev, botMsg]);
-                setIsTyping(false);
+            // Calculate timing offsets
+            // Wait for the read blue tick (4.5s max total elapsed) before typing
+            const elapsedTime = Date.now() - parseInt(userMsgId);
+            const remainingToStartTyping = Math.max(0, 4500 - elapsedTime);
 
-                // 4. Save Bot Response to Supabase
-                await supabase.from("messages").insert({
-                    chatbot_id: bot.id,
-                    user_id: user.id,
-                    role: "bot",
-                    content: data.content
-                });
+            setTimeout(() => {
+                setIsTyping(true);
 
-            }, 1200);
+                // Simulate human typing speed (roughly ~35ms per character, min 2s, max 7s)
+                const textLength = data.content?.length || 0;
+                const typingDuration = Math.min(Math.max(textLength * 35, 2000), 7000);
+
+                setTimeout(async () => {
+                    const botMsg: Message = {
+                        id: Date.now().toString(),
+                        role: "bot",
+                        content: data.content,
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    };
+                    setMessages((prev) => [...prev, botMsg]);
+                    setIsTyping(false);
+
+                    // 4. Save Bot Response to Supabase
+                    await supabase.from("messages").insert({
+                        chatbot_id: bot.id,
+                        user_id: user.id,
+                        role: "bot",
+                        content: data.content
+                    });
+
+                }, typingDuration);
+
+            }, remainingToStartTyping);
 
         } catch (error) {
             console.error("Error calling chat API:", error);
