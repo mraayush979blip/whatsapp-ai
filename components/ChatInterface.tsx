@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import BotProfileModal from "./BotProfileModal";
 import DeveloperSupportModal from "./DeveloperSupportModal";
 import ChatThemeModal, { THEMES } from "./ChatThemeModal";
+import VoiceCallScreen from "./VoiceCallScreen";
 
 interface Message {
     id?: string;
@@ -47,6 +48,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     const [isTyping, setIsTyping] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [isCalling, setIsCalling] = useState(false);
     const [themeConfig, setThemeConfig] = useState<{ isOpen: boolean, themeId: string }>({
         isOpen: false,
         themeId: typeof window !== "undefined" ? localStorage.getItem("chat_theme") || "default" : "default"
@@ -340,7 +342,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
                 <div className="flex space-x-4 items-center pl-2 relative pr-1">
                     <button onClick={() => handleCallAlert("Video Calls")} className="active:scale-95 transition-transform"><Video className="w-[20px] h-[20px] fill-white md:fill-transparent text-[#e9edef] md:text-[#aebac1]" /></button>
-                    <button onClick={() => handleCallAlert("Voice Calls")} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white md:fill-transparent text-[#e9edef] md:text-[#aebac1]" /></button>
+                    <button onClick={() => setIsCalling(true)} className="active:scale-95 transition-transform ml-1"><Phone className="w-[18px] h-[18px] fill-white md:fill-transparent text-[#e9edef] md:text-[#aebac1]" /></button>
 
                     <div className="relative">
                         <button
@@ -525,6 +527,16 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     localStorage.setItem("chat_theme", id);
                 }}
             />
+
+            {/* Voice Call Screen */}
+            <AnimatePresence>
+                {isCalling && (
+                    <VoiceCallScreen
+                        bot={bot}
+                        onEndCall={() => setIsCalling(false)}
+                    />
+                )}
+            </AnimatePresence>
         </div >
     );
 }
