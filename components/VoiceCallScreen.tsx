@@ -23,7 +23,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
     const [transcript, setTranscript] = useState("");
 
     const recognitionRef = useRef<any>(null);
-    const synthRef = useRef<SpeechSynthesis | null>(null);
+    const deepgramAudioRef = useRef<HTMLAudioElement | null>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Call Timer & Initial Ringing Simulation
@@ -53,15 +53,12 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
         return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     };
 
-    // Speech Synthesis (Speaking) Setup
+    // Cleanup audio on unmount
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            synthRef.current = window.speechSynthesis;
-        }
         return () => {
-            // Cancel any talking when call ends
-            if (synthRef.current) {
-                synthRef.current.cancel();
+            if (deepgramAudioRef.current) {
+                deepgramAudioRef.current.pause();
+                deepgramAudioRef.current.currentTime = 0;
             }
         };
     }, []);
@@ -163,83 +160,29 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
 
                 audio.onended = () => {
                     URL.revokeObjectURL(url);
+                    deepgramAudioRef.current = null;
                     // Resume listening after speaking
                     if (!isMuted && callStatus === "Connected" && recognitionRef.current) {
                         try { recognitionRef.current.start(); setIsListening(true); } catch (e) { }
                     }
                 };
 
-                synthRef.current?.cancel(); // Cancel any native speech
+                if (deepgramAudioRef.current) {
+                    deepgramAudioRef.current.pause();
+                }
+                deepgramAudioRef.current = audio;
+
                 audio.play().catch(e => {
                     console.error("Audio playback blocked by browser:", e);
-                    speakTextNative(text, isFemale);
                 });
                 return;
             } else {
-                console.warn("Deepgram TTS failed, falling back to basic native voice", await response.text());
-                speakTextNative(text, isFemale);
+                console.warn("Deepgram TTS failed:", await response.text());
+                // Fallback action if needed (e.g. show an error toast) but no native voice
             }
         } catch (error) {
-            console.error("Error with Deepgram TTS, falling back to native:", error);
-            speakTextNative(text, isFemale);
+            console.error("Error with Deepgram TTS:", error);
         }
-    };
-
-    const speakTextNative = (text: string, isFemale: boolean) => {
-        if (!synthRef.current) return;
-
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        // Try to find an appropriate voice
-        const voices = synthRef.current.getVoices();
-        const indianVoices = voices.filter(v => v.lang.includes('hi-IN') || v.lang.includes('en-IN') || v.lang.includes('hi_IN'));
-
-        let selectedVoice = null;
-
-        if (indianVoices.length > 0) {
-            if (isFemale) {
-                // Look for common female voice identifiers
-                selectedVoice = indianVoices.find(v =>
-                    v.name.toLowerCase().includes('female') ||
-                    v.name.toLowerCase().includes('swara') ||
-                    v.name.toLowerCase().includes('zira') ||
-                    v.name.toLowerCase().includes('aditi') ||
-                    v.name.toLowerCase().includes('lekha')
-                ) || indianVoices.find(v => v.name.includes('Google हिन्दी')) || indianVoices[0];
-            } else {
-                // Look for common male voice identifiers
-                selectedVoice = indianVoices.find(v =>
-                    v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female') ||
-                    v.name.toLowerCase().includes('hemant') ||
-                    v.name.toLowerCase().includes('madhur') ||
-                    v.name.toLowerCase().includes('david') ||
-                    v.name.toLowerCase().includes('rishi') ||
-                    v.name.toLowerCase().includes('ravi')
-                );
-
-                // Fallback for male if specific name isn't found
-                if (!selectedVoice) selectedVoice = indianVoices.length > 1 ? indianVoices[1] : indianVoices[0];
-            }
-        }
-
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        } else if (voices.length > 0) {
-            utterance.voice = voices[0];
-        }
-
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-
-        utterance.onend = () => {
-            // Resume listening after speaking
-            if (!isMuted && callStatus === "Connected" && recognitionRef.current) {
-                try { recognitionRef.current.start(); setIsListening(true); } catch (e) { }
-            }
-        };
-
-        synthRef.current.cancel(); // cancel any current speech
-        synthRef.current.speak(utterance);
     };
 
     const handleUserSaid = async (text: string) => {
@@ -359,7 +302,10 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 {/* End Call Button */}
                 <button
                     onClick={() => {
-                        if (synthRef.current) synthRef.current.cancel();
+                        if (deepgramAudioRef.current) {
+                            deepgramAudioRef.current.pause();
+                            deepgramAudioRef.current.currentTime = 0;
+                        }
                         onEndCall();
                     }}
                     className="w-[72px] h-[72px] rounded-full bg-[#f15c6d] flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform"

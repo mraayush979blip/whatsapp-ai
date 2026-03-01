@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 const DEEPGRAM_KEYS = [
-    "a38337c12f4f44964882acfe0817d89ef53afccf",
-    "845c36b327fe1d0d19a1d03eb548a79c16d30884"
-];
+    process.env.DEEPGRAM_API_KEY,
+    process.env.DEEPGRAM_API_KEY_2
+].filter(Boolean);
 
 export async function POST(req: Request) {
     try {
