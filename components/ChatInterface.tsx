@@ -317,6 +317,14 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         const file = event.target.files?.[0];
         if (!file) return;
 
+        // Check file size (limit to 10MB)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_FILE_SIZE) {
+            alert("Bhiya file size thoda bada hai! Please choose a file less than 10MB.");
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+
         try {
             setIsUploading(true);
             const { data: { user } } = await supabase.auth.getUser();
@@ -437,6 +445,13 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
                     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                     if (audioBlob.size < 500) return; // Too short/empty
+
+                    // Limit voice notes to ~10MB just in case
+                    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+                    if (audioBlob.size > MAX_FILE_SIZE) {
+                        alert("Bhiya voice note bohot lamba ho gaya (10MB+)! Please record a shorter message.");
+                        return;
+                    }
 
                     await uploadVoiceNote(audioBlob);
                 };
