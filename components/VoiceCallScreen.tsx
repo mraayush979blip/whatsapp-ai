@@ -271,13 +271,15 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userInput: sttData.text + " (Note: This is a phone call, so reply playfully and purely verbally. Keep it extremely short, 1 or 2 lines max. DO NOT repeat your pet name constantly)",
+                    userInput: sttData.text,
                     botName: bot.name,
                     botRole: bot.role,
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
                     history: [],
-                    userProfile: {}
+                    userProfile: {},
+                    isVoiceCall: true
+
                 }),
             });
 
@@ -287,7 +289,9 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
             if (!isMountedRef.current) return;
 
             if (chatData.content) {
-                await speakText(chatData.content);
+                // Strip emojis from the final output before giving it to STT so it doesn't try to read them out
+                const sanitizedContent = chatData.content.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+                await speakText(sanitizedContent);
             } else {
                 setCallStatus("Connected");
                 if (!isMuted && isMountedRef.current) startListening();

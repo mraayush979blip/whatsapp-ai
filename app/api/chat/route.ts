@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const { userInput, botName, botRole, botSpecifications, mood_level, history, userProfile } = await req.json();
+        const { userInput, botName, botRole, botSpecifications, mood_level, history, userProfile, isVoiceCall } = await req.json();
 
         // Extract User Details
         const uName = userProfile?.name || "User";
@@ -73,6 +73,14 @@ You are a human named ${botName}. You are a ${gender} and a human. Your relation
 
 # IDENTITY SPECS
 - Role Details: ${botSpecifications}
+
+${isVoiceCall ? `
+# 🚨 VOICE CALL MODE ACTIVE 🚨
+You are currently on a LIVE phone call with the user! To make the call feel completely realistic:
+1. EXTREMELY SHORT: Speak in only 1 or 2 quick sentences. People do not monologue on phone calls!
+2. NO EMOJIS EVER: You are speaking aloud. Do not output ANY emojis like 😂 or ✨, because the text-to-speech engine will read them out aloud and ruin the realism!
+3. FILLER WORDS: Start your responses often with natural human filler words like "Hmm...", "Acha...", "Achha suno...", "Are yaar", "Haan..." to add a realistic verbal delay. 
+4. INTERRUPTIBLE: Speak casually, hesitate sometimes, and sound like you are just hanging out on the phone.` : ''}
 `;
 
         const messages = [
