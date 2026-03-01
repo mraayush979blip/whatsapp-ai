@@ -318,6 +318,21 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                                         Disappearing messages
                                     </button>
                                     <button
+                                        onClick={() => window.open('https://aayush-sharma-beige.vercel.app/', '_blank')}
+                                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors border-t border-gray-50"
+                                    >
+                                        About Developer
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowMenu(false);
+                                            window.dispatchEvent(new Event('show-install-prompt'));
+                                        }}
+                                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors border-t border-gray-50"
+                                    >
+                                        Install App
+                                    </button>
+                                    <button
                                         onClick={() => supabase.auth.signOut()}
                                         className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50"
                                     >

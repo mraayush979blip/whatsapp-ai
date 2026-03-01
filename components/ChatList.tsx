@@ -19,6 +19,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
     const [bots, setBots] = useState<ChatBot[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchBots = async () => {
@@ -51,7 +52,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
     }, []);
 
     return (
-        <div className="flex flex-col h-full bg-white relative">
+        <div className="flex flex-col h-full bg-white relative" onClick={() => showMenu && setShowMenu(false)}>
             {/* WhatsApp Header: Mobile App Style vs Desktop Web Style */}
             <div className="bg-[#008069] md:bg-[#f0f2f5] text-white md:text-[#54656f] p-4 md:p-3 pb-0 md:pb-3 z-10 shadow-md md:shadow-none md:border-b md:border-[#d1d7db] flex-shrink-0">
                 <div className="flex items-center justify-between mb-4 md:mb-0">
@@ -72,9 +73,49 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                         <button onClick={() => supabase.auth.signOut()} title="Logout" className="md:hover:bg-gray-200 md:p-1.5 rounded-full">
                             <LogOut className="w-5 h-5 opacity-90 md:opacity-100 md:text-[#54656f]" />
                         </button>
-                        <button className="md:hover:bg-gray-200 md:p-1.5 rounded-full">
-                            <MoreVertical className="w-5 h-5 opacity-90 md:opacity-100 md:text-[#54656f]" />
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowMenu(!showMenu);
+                                }}
+                                className="md:hover:bg-gray-200 md:p-1.5 rounded-full transition-colors active:scale-90"
+                            >
+                                <MoreVertical className="w-5 h-5 opacity-90 md:opacity-100 md:text-[#54656f]" />
+                            </button>
+                            <AnimatePresence>
+                                {showMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        className="absolute right-0 mt-2 w-52 bg-white rounded-md shadow-xl z-50 text-gray-800 py-1 origin-top-right border border-gray-100 overflow-hidden"
+                                    >
+                                        <button
+                                            onClick={() => window.open('https://aayush-sharma-beige.vercel.app/', '_blank')}
+                                            className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors"
+                                        >
+                                            About Developer
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowMenu(false);
+                                                window.dispatchEvent(new Event('show-install-prompt'));
+                                            }}
+                                            className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors border-t border-gray-50"
+                                        >
+                                            Install App
+                                        </button>
+                                        <button
+                                            onClick={() => supabase.auth.signOut()}
+                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors border-t border-gray-50 md:hidden"
+                                        >
+                                            Logout
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
 
