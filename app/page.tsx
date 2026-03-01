@@ -7,6 +7,7 @@ import LoginScreen from "@/components/LoginScreen";
 import { Session } from "@supabase/supabase-js";
 import ChatList from "@/components/ChatList";
 import { MessageSquare, Phone, CircleDot, Users, Settings, Archive } from "lucide-react";
+import DeveloperSupportModal from "@/components/DeveloperSupportModal";
 
 interface ChatBot {
     id: string;
@@ -21,6 +22,7 @@ export default function Home() {
     const [session, setSession] = useState<Session | null>(null);
     const [selectedChat, setSelectedChat] = useState<ChatBot | null>(null);
     const [loading, setLoading] = useState(true);
+    const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
 
     useEffect(() => {
         let mounted = true;
@@ -91,17 +93,17 @@ export default function Home() {
                         <div className="hidden md:flex w-[60px] bg-[#202c33] border-r border-[#2f3b43] h-full flex-col items-center py-4 flex-shrink-0 z-20">
                             {/* Top Icons */}
                             <div className="flex flex-col space-y-4 w-full items-center">
-                                <button className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300 relative">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Chats Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300 relative">
                                     <MessageSquare className="w-6 h-6 fill-transparent" />
                                     <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#00a884] rounded-full border-2 border-[#202c33]" />
                                 </button>
-                                <button className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Calls Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <Phone className="w-6 h-6" />
                                 </button>
-                                <button className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Status Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <CircleDot className="w-6 h-6" />
                                 </button>
-                                <button className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <Users className="w-6 h-6" />
                                 </button>
                             </div>
@@ -110,13 +112,13 @@ export default function Home() {
 
                             {/* Bottom Icons */}
                             <div className="flex flex-col space-y-4 w-full items-center">
-                                <button className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Archive Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <Archive className="w-6 h-6" />
                                 </button>
-                                <button className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Settings Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <Settings className="w-6 h-6" />
                                 </button>
-                                <button className="p-1 rounded-full hover:bg-[#374248] mt-2 mb-2">
+                                <button onClick={() => setDevFeature({ isOpen: true, name: "Your Desktop Profile" })} className="p-1 rounded-full hover:bg-[#374248] mt-2 mb-2">
                                     <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-500">
                                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${session.user.id}`} alt="Profile" className="w-full h-full object-cover" />
                                     </div>
@@ -157,6 +159,12 @@ export default function Home() {
                     </>
                 )}
             </div>
+
+            <DeveloperSupportModal
+                isOpen={devFeature.isOpen}
+                onClose={() => setDevFeature(prev => ({ ...prev, isOpen: false }))}
+                featureName={devFeature.name}
+            />
         </main>
     );
 }

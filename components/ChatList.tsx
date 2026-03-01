@@ -65,7 +65,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
                     {/* Desktop Avatar Placeholder (Now hidden since it's on left panel) */}
 
                     <div className="flex items-center space-x-5 md:space-x-3 pr-1">
-                        <button className="hidden md:flex hover:bg-[#202c33] p-1.5 rounded-full items-center justify-center text-[#aebac1]" title="Communities">
+                        <button onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })} className="hidden md:flex hover:bg-[#202c33] p-1.5 rounded-full items-center justify-center text-[#aebac1]" title="Communities">
                             <Plus className="w-5 h-5" />
                         </button>
                         <Search className="w-5 h-5 md:hidden opacity-90" />
@@ -165,10 +165,10 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
 
             {/* Desktop Filter Tabs */}
             <div className="hidden md:flex px-3 pb-3 bg-[#111b21] space-x-2 overflow-x-auto no-scrollbar border-b border-[#202c33]">
-                <button className="bg-[#202c33] text-[#00a884] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
-                <button className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Unread</button>
-                <button className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Favourites</button>
-                <button className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Groups</button>
+                <button onClick={() => setDevFeature({ isOpen: true, name: "All Filter" })} className="bg-[#2a3942] text-[#00a884] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">All</button>
+                <button onClick={() => setDevFeature({ isOpen: true, name: "Unread Filter" })} className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Unread</button>
+                <button onClick={() => setDevFeature({ isOpen: true, name: "Favourites Filter" })} className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Favourites</button>
+                <button onClick={() => setDevFeature({ isOpen: true, name: "Groups Filter" })} className="bg-[#202c33] text-[#8696a0] hover:bg-[#2a3942] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">Groups</button>
             </div>
 
             {/* Bots List */}
