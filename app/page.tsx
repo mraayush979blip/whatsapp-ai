@@ -9,6 +9,7 @@ import ChatList from "@/components/ChatList";
 import { MessageSquare, Phone, CircleDot, Users, Settings, Archive } from "lucide-react";
 import DeveloperSupportModal from "@/components/DeveloperSupportModal";
 import UserProfileModal from "@/components/UserProfileModal";
+import CallList from "@/components/CallList";
 
 interface ChatBot {
     id: string;
@@ -25,6 +26,7 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'status' | 'communities'>('chats');
 
     useEffect(() => {
         let mounted = true;
@@ -106,11 +108,11 @@ export default function Home() {
                         <div className="hidden md:flex w-[60px] bg-[#202c33] border-r border-[#2f3b43] h-full flex-col items-center py-4 flex-shrink-0 z-20">
                             {/* Top Icons */}
                             <div className="flex flex-col space-y-4 w-full items-center">
-                                <button onClick={() => setDevFeature({ isOpen: true, name: "Chats Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300 relative">
+                                <button onClick={() => setActiveTab('chats')} className={`p-2.5 rounded-full hover:bg-[#374248] relative ${activeTab === 'chats' ? 'text-[#00a884] bg-[#374248]' : 'text-gray-300'}`}>
                                     <MessageSquare className="w-6 h-6 fill-transparent" />
                                     <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#00a884] rounded-full border-2 border-[#202c33]" />
                                 </button>
-                                <button onClick={() => setDevFeature({ isOpen: true, name: "Calls Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setActiveTab('calls')} className={`p-2.5 rounded-full hover:bg-[#374248] ${activeTab === 'calls' ? 'text-[#00a884] bg-[#374248]' : 'text-gray-300'}`}>
                                     <Phone className="w-6 h-6" />
                                 </button>
                                 <button onClick={() => setDevFeature({ isOpen: true, name: "Status Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
@@ -139,9 +141,13 @@ export default function Home() {
                             </div>
                         </div>
 
-                        {/* Middle column: ChatList (hidden on mobile if chat selected, visible on md+) */}
+                        {/* Middle column: ChatList/CallList (hidden on mobile if chat selected, visible on md+) */}
                         <div className={`w-full md:w-[350px] lg:w-[400px] flex-shrink-0 border-r border-[#d1d7db] md:border-[#2f3b43] bg-white md:bg-[#111b21] h-full flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
-                            <ChatList userId={session.user.id} onSelectChat={(bot) => setSelectedChat(bot)} selectedChatId={selectedChat?.id} />
+                            {activeTab === 'calls' ? (
+                                <CallList activeTab={activeTab} onTabChange={setActiveTab} />
+                            ) : (
+                                <ChatList userId={session.user.id} onSelectChat={(bot) => setSelectedChat(bot)} selectedChatId={selectedChat?.id} activeTab={activeTab} onTabChange={setActiveTab} />
+                            )}
                         </div>
 
                         {/* Right column (hidden on mobile if no chat selected, visible on md+) */}

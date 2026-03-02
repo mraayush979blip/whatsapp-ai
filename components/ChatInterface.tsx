@@ -697,7 +697,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             {/* Input Area */}
             <div className="bg-[#f0f0f0] md:bg-[#202c33] p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end space-x-1 md:space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px] mt-auto">
                 <button
-                    onClick={() => setDevFeature({ isOpen: true, name: "Media Sharing" })}
+                    onClick={() => fileInputRef.current?.click()}
                     className="p-2 md:p-3 md:pb-3 pb-2.5 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform shrink-0"
                 >
                     <Plus className="w-6 h-6 md:w-7 md:h-7 mb-0.5 md:mb-0" />
@@ -806,6 +806,6 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     />
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 }

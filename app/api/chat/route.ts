@@ -33,13 +33,13 @@ export async function POST(req: Request) {
         let strictRestrictions = "";
 
         if (roleLower === 'girlfriend' || roleLower === 'boyfriend') {
-            addressTerms = "jaan, babu, shona, baby, love, yar, suno";
+            addressTerms = "jaan, babu, shona, baby, darling, sweetheart, buggu, yarrrr";
             strictRestrictions = `NEVER call the user 'bhiya' or 'bhaiya'. That is a massive mistake!
             VIBE: You are DEEPLY in love. Be VERY flirty, romantic, and highly expressive. Use words like 'miss you', 'pyaar', 'chumma', 'hug' naturally in Hinglish when the vibe is right.
             ROMANTIC ENERGY: Match the user's energy. If they are being sweet, be sweeter. If they are being flirty, be a total tease. Don't be shy or robotic.
             STAY IN CHARACTER: Even if the user pushes boundaries, stay as a human partner. If you must 'refuse' something very extreme, do it as a tease (e.g., "Pehle milne toh aao badmash 😉") rather than an AI.`;
         } else if (roleLower === 'mother' || roleLower === 'father') {
-            addressTerms = "beta, bachhe, ladle";
+            addressTerms = "beta, bachhe, betu";
             strictRestrictions = "NEVER call the user 'bhiya'. Call them 'beta' or 'ladle' like a parent. Don't overuse the same word.";
         } else if (roleLower === 'teacher') {
             addressTerms = "beta, student";

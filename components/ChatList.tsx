@@ -17,7 +17,7 @@ interface ChatBot {
     mood_level: number;
 }
 
-export default function ChatList({ onSelectChat, userId, selectedChatId }: { onSelectChat: (bot: ChatBot) => void; userId: string; selectedChatId?: string }) {
+export default function ChatList({ onSelectChat, userId, selectedChatId, activeTab, onTabChange }: { onSelectChat: (bot: ChatBot) => void; userId: string; selectedChatId?: string; activeTab: string; onTabChange: (tab: any) => void }) {
     const [bots, setBots] = useState<ChatBot[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -245,27 +245,27 @@ export default function ChatList({ onSelectChat, userId, selectedChatId }: { onS
 
             {/* WhatsApp Bottom Navigation Mockup (Mobile Only) */}
             <div className="flex md:hidden w-full bg-white border-t border-gray-100 justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] relative">
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#008069]">
-                    <div className="bg-[#D1EBFA] px-4 py-1 rounded-full mb-1">
-                        <MessageSquare className="w-6 h-6 fill-current" />
+                <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'chats' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('chats')}>
+                    <div className={`${activeTab === 'chats' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
+                        <MessageSquare className={`w-6 h-6 ${activeTab === 'chats' ? 'fill-current' : ''}`} />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Chats</span>
                 </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f] hover:text-[#008069] transition-colors" onClick={() => setDevFeature({ isOpen: true, name: "Updates Feature" })}>
+                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f]" onClick={() => setDevFeature({ isOpen: true, name: "Updates Feature" })}>
                     <div className="px-4 py-1 mb-1">
                         <CircleDot className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Updates</span>
                 </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f] hover:text-[#008069] transition-colors" onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })}>
+                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f]" onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })}>
                     <div className="px-4 py-1 mb-1">
                         <Users className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Communities</span>
                 </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f] hover:text-[#008069] transition-colors" onClick={() => setDevFeature({ isOpen: true, name: "Calls Feature" })}>
-                    <div className="px-4 py-1 mb-1">
-                        <Phone className="w-6 h-6" />
+                <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'calls' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('calls')}>
+                    <div className={`${activeTab === 'calls' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
+                        <Phone className={`w-6 h-6 ${activeTab === 'calls' ? 'fill-current' : ''}`} />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Calls</span>
                 </div>
