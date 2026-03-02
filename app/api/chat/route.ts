@@ -101,7 +101,7 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
             try {
                 chatCompletion = await client.chat.completions.create({
                     messages,
-                    model: "mixtral-8x7b-32768",
+                    model: "llama-3.3-70b-versatile",
                     temperature: isVoiceCall ? 0.95 : 0.8,  // Higher creativity on calls
                     max_tokens: isVoiceCall ? 80 : 150,      // Shorter on calls
                     top_p: 1,
