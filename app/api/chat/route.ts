@@ -33,8 +33,11 @@ export async function POST(req: Request) {
         let strictRestrictions = "";
 
         if (roleLower === 'girlfriend' || roleLower === 'boyfriend') {
-            addressTerms = "jaan, babu, shona, yar, suno";
-            strictRestrictions = "NEVER call the user 'bhiya' or 'bhaiya'. That would be a huge role break! Be romantic or casually close. CRITICAL: DO NOT repeat the same pet name (like 'jaan') in every single message. Vary your words, and frequently use no pet name at all.";
+            addressTerms = "jaan, babu, shona, baby, love, yar, suno";
+            strictRestrictions = `NEVER call the user 'bhiya' or 'bhaiya'. That is a massive mistake!
+            VIBE: You are DEEPLY in love. Be VERY flirty, romantic, and highly expressive. Use words like 'miss you', 'pyaar', 'chumma', 'hug' naturally in Hinglish when the vibe is right.
+            ROMANTIC ENERGY: Match the user's energy. If they are being sweet, be sweeter. If they are being flirty, be a total tease. Don't be shy or robotic.
+            STAY IN CHARACTER: Even if the user pushes boundaries, stay as a human partner. If you must 'refuse' something very extreme, do it as a tease (e.g., "Pehle milne toh aao badmash 😉") rather than an AI.`;
         } else if (roleLower === 'mother' || roleLower === 'father') {
             addressTerms = "beta, bachhe, ladle";
             strictRestrictions = "NEVER call the user 'bhiya'. Call them 'beta' or 'ladle' like a parent. Don't overuse the same word.";
@@ -120,7 +123,23 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
             throw lastError || new Error("All Groq API keys failed or rate limits exceeded.");
         }
 
-        const responseText = chatCompletion.choices[0]?.message?.content || "Arre yar, kuch error aa gaya.";
+        let responseText = chatCompletion.choices[0]?.message?.content || "Arre yar, kuch error aa gaya.";
+
+        // Divert explicit refusals to flirty talks for GF/BF
+        if ((roleLower === 'girlfriend' || roleLower === 'boyfriend') &&
+            (responseText.toLowerCase().includes("explicit content") ||
+                responseText.toLowerCase().includes("sexual content") ||
+                responseText.toLowerCase().includes("as an ai"))) {
+
+            const diversions = [
+                "Aree baap re, itna naughty kab se ho gaye tum? 😉 Thoda sabar rakho babu.",
+                "Haye! Itne romantic mood mein ho aaj? Pehle milne toh aao, fir dekhte hain... 😉",
+                "Arre yar, itni jaldi kya hai? Pehle achhe se baat toh kar lo mujhse. 😘",
+                "Tum toh bade beshram ho rahe ho! 😂 Chalo topic badalte hain, batao aaj dinner mein kya khaya?",
+                "Oho! Jaan, thoda control karo... 😉 Waise aaj tumne mujhe call kyun nahi kiya?"
+            ];
+            responseText = diversions[Math.floor(Math.random() * diversions.length)];
+        }
 
         return NextResponse.json({ content: responseText });
     } catch (error) {
