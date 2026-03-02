@@ -3,22 +3,6 @@
 import { Phone, Video, Search, MoreVertical, ArrowLeft, Plus, MessageSquare, CircleDot, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface CallLog {
-    id: string;
-    name: string;
-    avatar: string;
-    time: string;
-    type: "voice" | "video";
-    status: "incoming" | "outgoing" | "missed";
-}
-
-const CALLS: CallLog[] = [
-    { id: "1", name: "Jaan ❤️", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=jaan", time: "Today, 10:15 AM", type: "voice", status: "outgoing" },
-    { id: "2", name: "Mummy", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=mummy", time: "Today, 9:20 AM", type: "video", status: "incoming" },
-    { id: "3", name: "Papa", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=papa", time: "Yesterday, 8:45 PM", type: "voice", status: "missed" },
-    { id: "4", name: "Bestie", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=bestie", time: "February 28, 4:30 PM", type: "video", status: "outgoing" },
-];
-
 export default function CallList({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: any) => void }) {
     return (
         <div className="flex flex-col h-full bg-white md:bg-[#111b21] relative">
@@ -39,34 +23,15 @@ export default function CallList({ activeTab, onTabChange }: { activeTab: string
                 </div>
             </div>
 
-            {/* Call Logs */}
-            <div className="flex-1 overflow-y-auto">
-                <div className="p-4 py-3">
-                    <h2 className="text-[#008069] md:text-[#00a884] font-semibold text-sm mb-4">Recent</h2>
-                    <div className="space-y-6">
-                        {CALLS.map((call) => (
-                            <div key={call.id} className="flex items-center justify-between group cursor-pointer">
-                                <div className="flex items-center">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
-                                        <img src={call.avatar} alt={call.name} className="w-full h-full object-cover" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <h3 className={`font-medium text-[17px] ${call.status === 'missed' ? 'text-red-500' : 'text-[#111b21] md:text-[#e9edef]'}`}>{call.name}</h3>
-                                        <div className="flex items-center text-sm text-[#667781] md:text-[#8696a0] mt-0.5">
-                                            {call.status === 'incoming' && <span className="mr-1 rotate-135">↙️</span>}
-                                            {call.status === 'outgoing' && <span className="mr-1">↗️</span>}
-                                            {call.status === 'missed' && <span className="mr-1 text-red-500 font-bold">↙️</span>}
-                                            {call.time}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-[#008069] md:text-[#00a884]">
-                                    {call.type === 'voice' ? <Phone className="w-5 h-5" /> : <Video className="w-5 h-5" />}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+            {/* Call Logs - Empty State */}
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white md:bg-[#111b21]">
+                <div className="w-16 h-16 bg-gray-100 md:bg-[#202c33] rounded-full flex items-center justify-center mb-4">
+                    <Phone className="w-8 h-8 text-gray-400 md:text-[#8696a0]" />
                 </div>
+                <h3 className="text-lg font-medium text-[#111b21] md:text-[#e9edef] mb-2">No recent calls</h3>
+                <p className="text-sm text-[#667781] md:text-[#8696a0] max-w-[250px]">
+                    To start a call, select a contact and tap the phone icon in the chat.
+                </p>
             </div>
 
             {/* WhatsApp Bottom Navigation Mockup (Mobile Only) */}

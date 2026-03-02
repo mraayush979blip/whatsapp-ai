@@ -216,15 +216,12 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
                                 <div className={`flex-1 overflow-hidden border-b pb-3 pt-1 ${selectedChatId === bot.id ? 'border-transparent' : 'border-gray-50 md:border-[#202c33]'}`}>
                                     <div className="flex justify-between items-center mb-0.5">
                                         <h3 className="font-normal text-[17px] text-[#111b21] md:text-[#e9edef] truncate tracking-tight">{bot.name}</h3>
-                                        <span className="text-[12px] text-[#667781] md:text-[#8696a0] font-normal">12:34 PM</span>
+                                        <span className="text-[12px] text-[#667781] md:text-[#8696a0] font-normal">online</span>
                                     </div>
                                     <div className="flex justify-between items-center pr-1">
                                         <p className="text-[14px] text-[#667781] md:text-[#8696a0] truncate pr-2">
                                             {bot.role}: Click to start GapShap...
                                         </p>
-                                        <div className="w-5 h-5 bg-[#25D366] rounded-full flex items-center justify-center text-[10px] text-white font-bold animate-pulse">
-                                            1
-                                        </div>
                                     </div>
                                 </div>
                             </motion.div>
