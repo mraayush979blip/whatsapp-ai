@@ -116,7 +116,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     // 1. Fetch Chat History from Supabase (+ optional once-daily proactive opener)
     useEffect(() => {
         let cancelled = false;
-        let proactiveTimer: ReturnType<typeof setTimeout> | undefined;
+        let proactiveTimer: number | undefined;
 
         const fetchHistory = async () => {
             const { data: { user } } = await supabase.auth.getUser();

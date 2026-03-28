@@ -1,4 +1,5 @@
 import { groqClients } from "@/lib/groq";
+import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -155,9 +156,17 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
             effectiveUser = "(user sent an empty message — react briefly in character.)";
         }
 
-        const messages = [
+        const historyMessages: ChatCompletionMessageParam[] = histArr.slice(-15).map((m) => {
+            const content = typeof m.content === "string" ? m.content : "";
+            if (m.role === "assistant") {
+                return { role: "assistant" as const, content };
+            }
+            return { role: "user" as const, content };
+        });
+
+        const messages: ChatCompletionMessageParam[] = [
             { role: "system", content: systemPrompt },
-            ...histArr.slice(-15),
+            ...historyMessages,
             { role: "user", content: effectiveUser },
         ];
 
