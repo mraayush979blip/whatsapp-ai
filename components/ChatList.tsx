@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, MessageSquare, MoreVertical, LogOut, CircleDot, Users, Phone } from "lucide-react";
+import { Plus, Search, MessageSquare, MoreVertical, LogOut, CircleDot, Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import CreateBotModal from "./CreateBotModal";
 import { motion, AnimatePresence } from "framer-motion";
@@ -253,12 +253,6 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
                         <CircleDot className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Updates</span>
-                </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f]" onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })}>
-                    <div className="px-4 py-1 mb-1">
-                        <Users className="w-6 h-6" />
-                    </div>
-                    <span className="text-[11px] font-semibold tracking-wide">Communities</span>
                 </div>
                 <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'calls' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('calls')}>
                     <div className={`${activeTab === 'calls' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, PhoneOff, Volume2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { inferBotGender, clientChatContext } from "@/lib/bot-profile";
+import { readGapshapUserProfile } from "@/lib/user-profile";
 
 interface VoiceCallScreenProps {
     bot: {
@@ -277,9 +279,10 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
                     botRole: bot.role,
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
-                    history: callHistoryRef.current.slice(-10), // Last 10 turns of THIS call
-                    userProfile: {},
-                    isVoiceCall: true
+                    history: callHistoryRef.current.slice(-10),
+                    userProfile: readGapshapUserProfile(),
+                    ...clientChatContext(bot.role),
+                    isVoiceCall: true,
                 }),
             });
 
@@ -315,9 +318,7 @@ export default function VoiceCallScreen({ bot, onEndCall }: VoiceCallScreenProps
         // Ensure we don't fetch if unmounted
         if (!isMountedRef.current) return;
 
-        const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
-        const roleLower = (bot.role || '').toLowerCase();
-        const isFemale = femaleRoles.includes(roleLower);
+        const isFemale = inferBotGender(bot.role) === "Female";
 
         try {
             const response = await fetch("/api/tts", {

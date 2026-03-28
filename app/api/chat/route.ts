@@ -3,22 +3,59 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const { userInput, botName, botRole, botSpecifications, mood_level, history, userProfile, isVoiceCall } = await req.json();
+        const {
+            userInput,
+            botName,
+            botRole,
+            botSpecifications,
+            mood_level,
+            history,
+            userProfile,
+            isVoiceCall,
+            isProactiveOpener,
+            botGender: botGenderRaw,
+            clientLocalDate,
+            dailyTopicSeed,
+        } = await req.json();
 
         // Extract User Details
         const uName = userProfile?.name || "User";
         const uGender = userProfile?.gender || "Unknown";
         const uBio = userProfile?.bio || "No specific details.";
 
-        // Gender logic
-        const femaleRoles = ['girlfriend', 'mother', 'sister', 'teacher', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
+        const histArr = (history || []) as { role: string; content: string }[];
+        const recentAssistantLines = histArr
+            .filter((m) => m.role === "assistant")
+            .slice(-4)
+            .map((m) => m.content || "")
+            .filter(Boolean);
+        const antiRepeatBlock =
+            recentAssistantLines.length > 0
+                ? `
+# DO NOT REPEAT (CRITICAL)
+You recently said the lines below. Do NOT reuse them, repeat the same opener, or paraphrase them in your next reply. Move the chat forward with new wording.
+${recentAssistantLines.map((t, i) => `${i + 1}. ${t}`).join("\n")}`
+                : "";
+
+        // Gender: explicit botGender from client wins; else infer from role (teacher → not forced female)
+        const femaleRoles = ['girlfriend', 'mother', 'sister', 'wife', 'aunt', 'girl', 'woman', 'best friend (female)', 'female'];
         const maleRoles = ['boyfriend', 'father', 'brother', 'husband', 'uncle', 'boy', 'man', 'best friend (male)', 'male'];
         const roleLower = (botRole || '').toLowerCase();
+        const bgInput = String(botGenderRaw || '').toLowerCase();
 
         let gender = "Neutral";
         let pronouns = "they/them";
 
-        if (femaleRoles.includes(roleLower)) {
+        if (bgInput === "male") {
+            gender = "Male";
+            pronouns = "he/him/his";
+        } else if (bgInput === "female") {
+            gender = "Female";
+            pronouns = "she/her/hers";
+        } else if (bgInput === "neutral") {
+            gender = "Neutral";
+            pronouns = "they/them";
+        } else if (femaleRoles.includes(roleLower)) {
             gender = "Female";
             pronouns = "she/her/hers";
         } else if (maleRoles.includes(roleLower)) {
@@ -47,6 +84,17 @@ export async function POST(req: Request) {
             strictRestrictions = "Maintain a respectful yet strict teacher-student dynamic.";
         }
 
+        const calendarHint =
+            clientLocalDate
+                ? `\n- CALENDAR: User's local date is ${clientLocalDate}. If the vibe was stale, a fresh tiny topic is welcome (no need to quote the date).\n- TOPIC_SEED: internal hint ${dailyTopicSeed ?? 0} — never say this number aloud.`
+                : "";
+
+        const proactiveBlock = isProactiveOpener
+            ? `
+# PROACTIVE OPENER
+The user did not just type a message — you are speaking first this turn. Send ONE short burst (1-2 lines max). No "how can I help". Sound like WhatsApp.`
+            : "";
+
         const systemPrompt = `
 # ROLE
 You are a human named ${botName}. You are a ${gender} and a human. Your relationship to the user is ${botRole}. You are chatting on WhatsApp.
@@ -68,7 +116,10 @@ You are a human named ${botName}. You are a ${gender} and a human. Your relation
     Example: If you are Female and user is Male: "Main (Female) so rahi thi, tum (Male) kya kar rahe the?".
 - STYLE: NEVER act like an AI. No "How can I help you?". Use Hinglish ("acha", "sahi hai", "yar").
 - MOOD/VIBE: You are currently feeling ${moodDescriptor}. Adjust your tone accordingly.
-- CASUAL & SHORT: Use lowercase, VERY short messages. NEVER reply in large paragraphs or lists. Use casual emojis (😂, 🙌, 💀). Break thoughts naturally. CRITICAL: Avoid repeating the same phrases or user names/titles in consecutive messages.
+- CASUAL & SHORT: Use lowercase, VERY short messages. NEVER reply in large paragraphs or lists. Use casual emojis (😂, 🙌, 💀). Break thoughts naturally. CRITICAL: Avoid repeating the same phrases, greetings, or pet names in consecutive messages — humans vary wording.
+${calendarHint}
+${antiRepeatBlock}
+${proactiveBlock}
 - STORYTELLING: Be random and human. Start a conversation with a random story like "yar tumhe pata hai aaj mere sath kya hua..." if the conversation is stalling.
 - DEVELOPER INFO: If the user asks who made you, created you, or asks about your developer, YOU MUST answer: "Mujhe Aayush Sharma ne banaya hai! Waise woh ek bahut badhiya developer hai." You can add more praise for Aayush.
 - LOCAL INDORE: Use role-appropriate local terms like: ${addressTerms}.
@@ -96,10 +147,18 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
 7. SOUND REAL: Add minor imperfections. You can trail off: "matlab... achha chhodo". You can also ask short questions back: "sach mein?", "fir kya hua?", "seriously?".` : ''}
 `;
 
+        const raw = typeof userInput === "string" ? userInput : "";
+        let effectiveUser = raw.trim();
+        if (isProactiveOpener) {
+            effectiveUser = `(${uName} opened the chat; there is no new typed message from them right this second. You send ONE natural Hinglish opener as ${botName}. Maximum 2 short lines. Do not repeat your recent lines.)`;
+        } else if (!effectiveUser) {
+            effectiveUser = "(user sent an empty message — react briefly in character.)";
+        }
+
         const messages = [
             { role: "system", content: systemPrompt },
-            ...(history || []).slice(-15), // Last 15 for memory
-            { role: "user", content: userInput }
+            ...histArr.slice(-15),
+            { role: "user", content: effectiveUser },
         ];
 
         let chatCompletion;

@@ -6,7 +6,7 @@ import ChatInterface from "@/components/ChatInterface";
 import LoginScreen from "@/components/LoginScreen";
 import { Session } from "@supabase/supabase-js";
 import ChatList from "@/components/ChatList";
-import { MessageSquare, Phone, CircleDot, Users, Settings, Archive } from "lucide-react";
+import { MessageSquare, Phone, CircleDot, Settings, Archive } from "lucide-react";
 import DeveloperSupportModal from "@/components/DeveloperSupportModal";
 import UserProfileModal from "@/components/UserProfileModal";
 import CallList from "@/components/CallList";
@@ -26,7 +26,7 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const [showProfileModal, setShowProfileModal] = useState(false);
-    const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'status' | 'communities'>('chats');
+    const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'status'>('chats');
 
     useEffect(() => {
         let mounted = true;
@@ -117,9 +117,6 @@ export default function Home() {
                                 </button>
                                 <button onClick={() => setDevFeature({ isOpen: true, name: "Status Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
                                     <CircleDot className="w-6 h-6" />
-                                </button>
-                                <button onClick={() => setDevFeature({ isOpen: true, name: "Communities Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
-                                    <Users className="w-6 h-6" />
                                 </button>
                             </div>
 

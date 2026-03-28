@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, Video, Search, MoreVertical, ArrowLeft, Plus, MessageSquare, CircleDot, Users } from "lucide-react";
+import { Phone, Video, Search, MoreVertical, ArrowLeft, Plus, MessageSquare, CircleDot } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function CallList({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: any) => void }) {
@@ -47,12 +47,6 @@ export default function CallList({ activeTab, onTabChange }: { activeTab: string
                         <CircleDot className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Updates</span>
-                </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f]">
-                    <div className="px-4 py-1 mb-1">
-                        <Users className="w-6 h-6" />
-                    </div>
-                    <span className="text-[11px] font-semibold tracking-wide">Communities</span>
                 </div>
                 <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'calls' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('calls')}>
                     <div className={`${activeTab === 'calls' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>

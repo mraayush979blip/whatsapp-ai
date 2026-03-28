@@ -11,6 +11,8 @@ import DeveloperSupportModal from "./DeveloperSupportModal";
 import ChatThemeModal, { THEMES } from "./ChatThemeModal";
 import VoiceCallScreen from "./VoiceCallScreen";
 import { v4 as uuidv4 } from 'uuid';
+import { clientChatContext } from "@/lib/bot-profile";
+import { readGapshapUserProfile } from "@/lib/user-profile";
 
 interface Message {
     id?: string;
@@ -66,6 +68,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const proactiveInFlightRef = useRef(false);
+    const proactiveScheduledRef = useRef(false);
 
     const handleClearChat = async () => {
         try {
@@ -109,8 +113,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
     }, []);
 
-    // 1. Fetch Chat History from Supabase
+    // 1. Fetch Chat History from Supabase (+ optional once-daily proactive opener)
     useEffect(() => {
+        let cancelled = false;
+        let proactiveTimer: ReturnType<typeof setTimeout> | undefined;
+
         const fetchHistory = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
@@ -121,16 +128,95 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 .eq("chatbot_id", bot.id)
                 .order("created_at", { ascending: true });
 
+            if (cancelled) return;
+
             if (error) {
                 console.error("Error fetching history:", error);
-            } else if (data && data.length > 0) {
+                return;
+            }
+
+            if (data && data.length > 0) {
                 setMessages(data.map(m => ({
-                    role: m.role,
+                    role: m.role as "user" | "bot",
                     content: m.content,
                     time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 })));
+
+                const today = new Date().toLocaleDateString("en-CA");
+                const doneKey = `gapshap_proactive_done_${bot.id}_${today}`;
+                if (typeof localStorage !== "undefined" && localStorage.getItem(doneKey)) return;
+
+                const last = data[data.length - 1];
+                const ageMs = Date.now() - new Date(last.created_at).getTime();
+                const thirtyMin = 30 * 60 * 1000;
+                const fourHours = 4 * 60 * 60 * 1000;
+
+                if (last.role === "user" && ageMs < thirtyMin) return;
+                if (last.role === "bot" && ageMs < fourHours) return;
+                if (proactiveScheduledRef.current) return;
+                proactiveScheduledRef.current = true;
+                proactiveInFlightRef.current = true;
+
+                const jitter = 600 + Math.random() * 1400;
+                proactiveTimer = window.setTimeout(async () => {
+                    if (cancelled) {
+                        proactiveInFlightRef.current = false;
+                        proactiveScheduledRef.current = false;
+                        return;
+                    }
+                    try {
+                        setIsTyping(true);
+                        const history = data.map(m => ({
+                            role: m.role === "bot" ? "assistant" : "user",
+                            content: m.content
+                        }));
+
+                        const res = await fetch("/api/chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                userInput: "",
+                                botName: bot.name,
+                                botRole: bot.role,
+                                botSpecifications: bot.specifications,
+                                mood_level: bot.mood_level,
+                                history,
+                                userProfile: readGapshapUserProfile(),
+                                ...clientChatContext(bot.role),
+                                isProactiveOpener: true,
+                            }),
+                        });
+                        const json = await res.json();
+                        const text = json.content as string | undefined;
+                        if (!text?.trim()) return;
+
+                        const typingDuration = Math.min(Math.max(text.length * 35, 1500), 5000);
+                        await new Promise(r => setTimeout(r, typingDuration));
+                        if (cancelled) return;
+
+                        const botMsg: Message = {
+                            id: Date.now().toString(),
+                            role: "bot",
+                            content: text,
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        };
+                        setMessages(prev => [...prev, botMsg]);
+                        if (typeof localStorage !== "undefined") localStorage.setItem(doneKey, "1");
+
+                        await supabase.from("messages").insert({
+                            chatbot_id: bot.id,
+                            user_id: user.id,
+                            role: "bot",
+                            content: text,
+                        });
+                    } catch (e) {
+                        console.error("Proactive opener failed:", e);
+                    } finally {
+                        if (!cancelled) setIsTyping(false);
+                        proactiveInFlightRef.current = false;
+                    }
+                }, jitter);
             } else {
-                // No history, show welcome
                 setMessages([
                     {
                         role: "bot",
@@ -142,6 +228,12 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         };
 
         fetchHistory();
+        return () => {
+            cancelled = true;
+            if (proactiveTimer !== undefined) clearTimeout(proactiveTimer);
+            proactiveScheduledRef.current = false;
+            proactiveInFlightRef.current = false;
+        };
     }, [bot.id]);
 
     useEffect(() => {
@@ -244,17 +336,6 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 content: m.content
             }));
 
-            let userProfile = { name: "User", gender: "Unknown", bio: "No specific details." };
-            try {
-                const storedProfile = localStorage.getItem("gapshap_user_profile");
-                if (storedProfile) {
-                    const parsed = JSON.parse(storedProfile);
-                    if (parsed.name) userProfile.name = parsed.name;
-                    if (parsed.gender) userProfile.gender = parsed.gender;
-                    if (parsed.bio) userProfile.bio = parsed.bio;
-                }
-            } catch (e) { }
-
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -265,7 +346,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
                     history: chatHistoryForAPI,
-                    userProfile
+                    userProfile: readGapshapUserProfile(),
+                    ...clientChatContext(bot.role),
                 }),
             });
 
@@ -386,7 +468,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
                     history: messages.map(m => ({ role: m.role === "bot" ? "assistant" : "user", content: m.content })),
-                    userProfile: { name: "User", gender: "Unknown", bio: "No specific details." }
+                    userProfile: readGapshapUserProfile(),
+                    ...clientChatContext(bot.role),
                 }),
             });
 
@@ -539,7 +622,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     botSpecifications: bot.specifications,
                     mood_level: bot.mood_level,
                     history: messages.map(m => ({ role: m.role === "bot" ? "assistant" : "user", content: m.content })),
-                    userProfile: { name: "User", gender: "Unknown", bio: "No specific details." }
+                    userProfile: readGapshapUserProfile(),
+                    ...clientChatContext(bot.role),
                 }),
             });
 
