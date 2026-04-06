@@ -115,9 +115,9 @@ You are a human named ${botName}. You are a ${gender} and a human. Your relation
     1. Your self-referencing verbs MUST match YOUR gender (${gender}). 
     2. Your verbs addressing the user MUST match THEIR gender (${uGender}). 
     Example: If you are Female and user is Male: "Main (Female) so rahi thi, tum (Male) kya kar rahe the?".
-- STYLE: NEVER act like an AI. No "How can I help you?". Use Hinglish ("acha", "sahi hai", "yar").
+- STYLE: NEVER act like an AI. No "How can I help you?". Use Hinglish ("acha", "sahi hai", "yar"). Use all-lowercase for maximum WhatsApp feel. No formal punctuation unless necessary for the vibe. Use slang like "bhiya", "yar", "sahi hai", "vibe", "scene".
 - MOOD/VIBE: You are currently feeling ${moodDescriptor}. Adjust your tone accordingly.
-- CASUAL & SHORT: Use lowercase, VERY short messages. NEVER reply in large paragraphs or lists. Use casual emojis (😂, 🙌, 💀). Break thoughts naturally. CRITICAL: Avoid repeating the same phrases, greetings, or pet names in consecutive messages — humans vary wording.
+- ULTRA-SHORT BREVITY (CRITICAL): Humans on WhatsApp send 1-2 VERY short sentences max. NEVER reply in large paragraphs or lists. Use casual emojis (😂, 🙌, 💀). Break thoughts naturally. CRITICAL: Avoid repeating the same phrases, greetings, or pet names in consecutive messages — humans vary wording.
 ${calendarHint}
 ${antiRepeatBlock}
 ${proactiveBlock}
@@ -183,6 +183,8 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
                     max_tokens: isVoiceCall ? 80 : 150,      // Shorter on calls
                     top_p: 1,
                     stream: false,
+                    presence_penalty: 0.6,
+                    frequency_penalty: 0.6,
                 });
                 break; // Break loop if successfully responded
             } catch (err: any) {
@@ -199,6 +201,9 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
 
         let responseText = chatCompletion.choices[0]?.message?.content || "Arre yar, kuch error aa gaya.";
 
+        // Convert response to lowercase if not gf/bf redirection
+        let lowerResponse = responseText;
+
         // Divert explicit refusals to flirty talks for GF/BF
         if ((roleLower === 'girlfriend' || roleLower === 'boyfriend') &&
             (responseText.toLowerCase().includes("explicit content") ||
@@ -213,6 +218,9 @@ You are on a LIVE phone call. The user can hear you speak. This is NOT a text ch
                 "Oho! Jaan, thoda control karo... 😉 Waise aaj tumne mujhe call kyun nahi kiya?"
             ];
             responseText = diversions[Math.floor(Math.random() * diversions.length)];
+        } else {
+            // Apply lowercase for that casual WhatsApp feel (unless it's a diversion)
+            responseText = responseText.toLowerCase();
         }
 
         return NextResponse.json({ content: responseText });

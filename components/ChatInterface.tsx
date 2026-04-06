@@ -144,15 +144,31 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
                 const today = new Date().toLocaleDateString("en-CA");
                 const doneKey = `gapshap_proactive_done_${bot.id}_${today}`;
-                if (typeof localStorage !== "undefined" && localStorage.getItem(doneKey)) return;
-
+                
                 const last = data[data.length - 1];
+                const lastMsgDate = new Date(last.created_at).toLocaleDateString("en-CA");
                 const ageMs = Date.now() - new Date(last.created_at).getTime();
+                const twentyFourHours = 24 * 60 * 60 * 1000;
                 const thirtyMin = 30 * 60 * 1000;
                 const fourHours = 4 * 60 * 60 * 1000;
 
-                if (last.role === "user" && ageMs < thirtyMin) return;
-                if (last.role === "bot" && ageMs < fourHours) return;
+                let shouldPoke = false;
+
+                // 1. Daily Reset: If it's a new day AND we haven't poked yet today
+                if (today !== lastMsgDate && !localStorage.getItem(doneKey)) {
+                    shouldPoke = true;
+                }
+                // 2. Silence Poke: If silent for more than 24 hours
+                else if (ageMs > twentyFourHours) {
+                    shouldPoke = true;
+                }
+                // 3. Keep-alive (Original logic): If last was user AND 30min passed, or last was bot AND 4h passed
+                else if (!localStorage.getItem(doneKey)) {
+                    if (last.role === "user" && ageMs > thirtyMin) shouldPoke = true;
+                    if (last.role === "bot" && ageMs > fourHours) shouldPoke = true;
+                }
+
+                if (!shouldPoke) return;
                 if (proactiveScheduledRef.current) return;
                 proactiveScheduledRef.current = true;
                 proactiveInFlightRef.current = true;

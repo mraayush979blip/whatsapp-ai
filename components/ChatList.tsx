@@ -7,6 +7,7 @@ import CreateBotModal from "./CreateBotModal";
 import { motion, AnimatePresence } from "framer-motion";
 import DeveloperSupportModal from "./DeveloperSupportModal";
 import UserProfileModal from "./UserProfileModal";
+import AddPersonModal from "./AddPersonModal";
 
 interface ChatBot {
     id: string;
@@ -21,6 +22,7 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
     const [bots, setBots] = useState<ChatBot[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showAddPersonModal, setShowAddPersonModal] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
@@ -66,6 +68,18 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
                     {/* Desktop Avatar Placeholder (Now hidden since it's on left panel) */}
 
                     <div className="flex items-center space-x-5 md:space-x-3 pr-1">
+                        {/* New Add Real Person Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAddPersonModal(true);
+                            }}
+                            className="flex items-center justify-center p-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 transition-colors"
+                            title="Add Real Person"
+                        >
+                            <Plus className="w-5 h-5 stroke-[3px]" />
+                        </button>
+
                         <button onClick={() => setShowModal(true)} className="hidden md:flex hover:bg-[#202c33] p-1.5 rounded-full items-center justify-center text-[#aebac1]" title="Add New Friend">
                             <Plus className="w-5 h-5" />
                         </button>
@@ -248,12 +262,6 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Chats</span>
                 </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f]" onClick={() => setDevFeature({ isOpen: true, name: "Updates Feature" })}>
-                    <div className="px-4 py-1 mb-1">
-                        <CircleDot className="w-6 h-6" />
-                    </div>
-                    <span className="text-[11px] font-semibold tracking-wide">Updates</span>
-                </div>
                 <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'calls' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('calls')}>
                     <div className={`${activeTab === 'calls' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
                         <Phone className={`w-6 h-6 ${activeTab === 'calls' ? 'fill-current' : ''}`} />
@@ -281,6 +289,15 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
                 isOpen={showProfileModal}
                 onClose={() => setShowProfileModal(false)}
             />
+            {showAddPersonModal && (
+                <AddPersonModal 
+                    onClose={() => setShowAddPersonModal(false)} 
+                    onAdded={() => {
+                        setShowAddPersonModal(false);
+                        fetchBots();
+                    }}
+                />
+            )}
         </div>
     );
 }
