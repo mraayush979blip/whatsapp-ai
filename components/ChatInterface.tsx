@@ -261,12 +261,6 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     const handleSendMessage = async () => {
         if (!input.trim()) return;
 
-        // Implement hard limit of 50 messages to force users to clear chat
-        if (messages.length >= 50) {
-            alert("Bhiya storage full ho gaya hai! 😅 Please click on the 3-dots menu and select 'Clear chat' to proceed further.");
-            return;
-        }
-
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 

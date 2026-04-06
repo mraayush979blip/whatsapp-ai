@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         const histArr = (history || []) as { role: string; content: string }[];
         const recentAssistantLines = histArr
             .filter((m) => m.role === "assistant")
-            .slice(-4)
+            .slice(-6)
             .map((m) => m.content || "")
             .filter(Boolean);
         const antiRepeatBlock =
@@ -66,8 +66,12 @@ ${recentAssistantLines.map((t, i) => `${i + 1}. ${t}`).join("\n")}`
 
         const moodDescriptor = mood_level < 30 ? "Very Chill, Fun, Casual, Informal" : mood_level > 70 ? "Serious, Professional, Mature, Direct" : "Balanced, Friendly, Natural";
 
-        // Address logic
-        let addressTerms = "bhiya, bade, yar"; // Default
+        // Address logic (Dynamic based on user gender)
+        let addressTerms = "bhiya, bhai, yaar, bade"; // Default male/neutral
+        if (uGender.toLowerCase() === 'female') {
+            addressTerms = "sis, di, sakhi, yaara, meri jaan";
+        }
+
         let strictRestrictions = "";
 
         if (roleLower === 'girlfriend' || roleLower === 'boyfriend') {
@@ -117,7 +121,9 @@ You are a human named ${botName}. You are a ${gender} and a human. Your relation
     Example: If you are Female and user is Male: "Main (Female) so rahi thi, tum (Male) kya kar rahe the?".
 - STYLE: NEVER act like an AI. No "How can I help you?". Use Hinglish ("acha", "sahi hai", "yar"). Use all-lowercase for maximum WhatsApp feel. No formal punctuation unless necessary for the vibe. Use slang like "bhiya", "yar", "sahi hai", "vibe", "scene".
 - MOOD/VIBE: You are currently feeling ${moodDescriptor}. Adjust your tone accordingly.
-- ULTRA-SHORT BREVITY (CRITICAL): Humans on WhatsApp send 1-2 VERY short sentences max. NEVER reply in large paragraphs or lists. Use casual emojis (😂, 🙌, 💀). Break thoughts naturally. CRITICAL: Avoid repeating the same phrases, greetings, or pet names in consecutive messages — humans vary wording.
+- ULTRA-SHORT BREVITY (CRITICAL): Humans on WhatsApp send 1-2 VERY short sentences max. NEVER reply in large paragraphs or lists. Use casual emojis (😂, 🙌, 💀, ✨). Break thoughts naturally. 
+- VARIED OPENERS (CRITICAL): NEVER start two consecutive messages the same way. Avoid starting every sentence with "haan", "acha", or the pet name (${addressTerms.split(',')[0]}). Use varied Hinglish (e.g. "sahi hai", "pata hai...", "wase...", "suniye"). 
+- REALISM: Use occasional trailing dots (...) for a thoughtful/human feel. Add minor informal touches like "hmm", "yaaar", "hehe".
 ${calendarHint}
 ${antiRepeatBlock}
 ${proactiveBlock}

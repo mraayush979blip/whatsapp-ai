@@ -10,6 +10,7 @@ import { MessageSquare, Phone, CircleDot, Settings, Archive } from "lucide-react
 import DeveloperSupportModal from "@/components/DeveloperSupportModal";
 import UserProfileModal from "@/components/UserProfileModal";
 import CallList from "@/components/CallList";
+import UpdatesList from "@/components/UpdatesList";
 
 interface ChatBot {
     id: string;
@@ -115,7 +116,7 @@ export default function Home() {
                                 <button onClick={() => setActiveTab('calls')} className={`p-2.5 rounded-full hover:bg-[#374248] ${activeTab === 'calls' ? 'text-[#00a884] bg-[#374248]' : 'text-gray-300'}`}>
                                     <Phone className="w-6 h-6" />
                                 </button>
-                                <button onClick={() => setDevFeature({ isOpen: true, name: "Status Feature" })} className="p-2.5 rounded-full hover:bg-[#374248] text-gray-300">
+                                <button onClick={() => setActiveTab('status')} className={`p-2.5 rounded-full hover:bg-[#374248] ${activeTab === 'status' ? 'text-[#00a884] bg-[#374248]' : 'text-gray-300'}`}>
                                     <CircleDot className="w-6 h-6" />
                                 </button>
                             </div>
@@ -142,6 +143,8 @@ export default function Home() {
                         <div className={`w-full md:w-[350px] lg:w-[400px] flex-shrink-0 border-r border-[#d1d7db] md:border-[#2f3b43] bg-white md:bg-[#111b21] h-full flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
                             {activeTab === 'calls' ? (
                                 <CallList activeTab={activeTab} onTabChange={setActiveTab} />
+                            ) : activeTab === 'status' ? (
+                                <UpdatesList />
                             ) : (
                                 <ChatList userId={session.user.id} onSelectChat={(bot) => setSelectedChat(bot)} selectedChatId={selectedChat?.id} activeTab={activeTab} onTabChange={setActiveTab} />
                             )}
