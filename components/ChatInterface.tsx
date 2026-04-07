@@ -110,7 +110,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     };
 
     const handleCallAlert = (featureName: string) => {
-        setDevFeature({ isOpen: true, name: featureName });
+        if (bot.role === "Real Person") {
+            alert(`Bhiya! P2P ${featureName} ke liye Agora ya WebRTC server link karna padega. Abhi sirf AI voice calls supported hain! 🙏`);
+        } else {
+            setDevFeature({ isOpen: true, name: featureName });
+        }
     };
 
     // Initialize Audio
@@ -957,7 +961,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 </div>
 
                 {messages.map((m, i) => (
-                    <MessageBubble key={i} message={m} />
+                    <MessageBubble key={i} message={m} isRealPerson={bot.role === "Real Person"} />
                 ))}
 
                 {isTyping && <TypingIndicator botName={bot.name} />}
@@ -965,12 +969,14 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
             {/* Input Area */}
             <div className="bg-[#f0f0f0] md:bg-[#202c33] p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end space-x-1 md:space-x-2 w-full z-10 shrink-0 min-h-[60px] md:min-h-[62px] mt-auto">
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 md:p-3 md:pb-3 pb-2.5 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform shrink-0"
-                >
-                    <Plus className="w-6 h-6 md:w-7 md:h-7 mb-0.5 md:mb-0" />
-                </button>
+                {bot.role !== "Real Person" && (
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 md:p-3 md:pb-3 pb-2.5 text-[#54656f] md:text-[#aebac1] active:scale-95 transition-transform shrink-0"
+                    >
+                        <Plus className="w-6 h-6 md:w-7 md:h-7 mb-0.5 md:mb-0" />
+                    </button>
+                )}
 
                 <div className="flex-1 bg-white md:bg-[#2a3942] rounded-3xl md:rounded-lg flex items-center min-h-[42px] max-h-[120px] overflow-hidden shadow-sm md:shadow-none border-[0.5px] border-gray-200 md:border-none mb-1 md:my-auto transition-all">
                     {isRecordingVoiceNote ? (
@@ -1003,26 +1009,28 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                         />
                     )}
 
-                    <div className="flex items-center space-x-3.5 text-[#54656f] md:text-[#aebac1] pr-4 pb-[11px] md:hidden shrink-0">
-                        <button onClick={() => fileInputRef.current?.click()}>
-                            <Paperclip className="w-5 h-5 -rotate-45" />
-                        </button>
-                        <button onClick={() => fileInputRef.current?.click()}>
-                            {isUploading ? (
-                                <div className="w-[22px] h-[22px] border-2 border-[#aebac1] border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <Camera className="w-[22px] h-[22px]" />
-                            )}
-                        </button>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileUpload}
-                            className="hidden"
-                            accept="image/*"
-                            disabled={isUploading}
-                        />
-                    </div>
+                    {bot.role !== "Real Person" && (
+                        <div className="flex items-center space-x-3.5 text-[#54656f] md:text-[#aebac1] pr-4 pb-[11px] md:hidden shrink-0">
+                            <button onClick={() => fileInputRef.current?.click()}>
+                                <Paperclip className="w-5 h-5 -rotate-45" />
+                            </button>
+                            <button onClick={() => fileInputRef.current?.click()}>
+                                {isUploading ? (
+                                    <div className="w-[22px] h-[22px] border-2 border-[#aebac1] border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <Camera className="w-[22px] h-[22px]" />
+                                )}
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                                className="hidden"
+                                accept="image/*"
+                                disabled={isUploading}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex shrink-0 items-center justify-center mb-1 md:my-auto ml-1 mr-1">
@@ -1077,11 +1085,20 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
             {/* Voice Call Screen */}
             <AnimatePresence>
-                {isCalling && (
+                {isCalling && bot.role !== "Real Person" && (
                     <VoiceCallScreen
                         bot={bot}
                         onEndCall={() => setIsCalling(false)}
                     />
+                )}
+                {isCalling && bot.role === "Real Person" && (
+                    <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-6 text-center">
+                        <div className="bg-[#202c33] p-8 rounded-2xl border border-[#2f3b43]">
+                             <h2 className="text-xl text-white mb-4">P2P Calling...</h2>
+                             <p className="text-[#8696a0] mb-6">Bhiya, abhi real-person calls ke liye data privacy setup pending hai.<br/>Bas 2 din ruko! 😉</p>
+                             <button onClick={() => setIsCalling(false)} className="bg-[#00a884] text-white px-6 py-2 rounded-full">Ok</button>
+                        </div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
