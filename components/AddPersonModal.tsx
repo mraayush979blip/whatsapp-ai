@@ -55,6 +55,7 @@ export default function AddPersonModal({ onClose, onAdded }: AddPersonModalProps
             // but we'll follow the existing pattern for now.
             const { error } = await supabase.from("chatbots").insert({
                 user_id: user.id,
+                linked_user_id: foundUser.id,
                 name: foundUser.name || foundUser.full_name || "Real Person",
                 role: "Real Person",
                 specifications: `Real user: ${foundUser.email}`,

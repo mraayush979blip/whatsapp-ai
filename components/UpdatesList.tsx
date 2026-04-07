@@ -25,7 +25,51 @@ export default function UpdatesList() {
             .gte("created_at", yesterday.toISOString())
             .order("created_at", { ascending: false });
             
-        setStatuses(data || []);
+        let combinedStatuses = data || [];
+
+        // Render AI Statuses
+        if (user) {
+            const { data: bots } = await supabase
+                .from("chatbots")
+                .select("*")
+                .eq("user_id", user.id)
+                .neq("role", "Real Person");
+
+            if (bots && bots.length > 0) {
+                const todayStr = new Date().toLocaleDateString("en-CA");
+                const storageKey = `gapshap_ai_statuses_${todayStr}_${user.id}`;
+                let aiStatuses = [];
+                
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    if (stored) aiStatuses = JSON.parse(stored);
+                } catch(e) {}
+
+                if (aiStatuses.length === 0) {
+                    const CAPTIONS = ["Feeling cute, might delete later 😂", "Kya din hai yar aaj ka! ✨", "Single forever! but happy 😎", "Mausam mast hai! 🌧️", "Zindagi chal rahi hai bas...", "Coffee and vibes. ☕", "Hustling everyday! 🚀"];
+                    const numToPick = Math.min(3, bots.length);
+                    const shuffledBots = [...bots].sort(() => 0.5 - Math.random());
+                    const pickedBots = shuffledBots.slice(0, numToPick);
+                    
+                    aiStatuses = pickedBots.map((bot, i) => ({
+                        id: `ai_${bot.id}_${todayStr}`,
+                        user_id: bot.id, 
+                        image_url: `https://picsum.photos/seed/${bot.id}_${todayStr}/400/600`,
+                        caption: CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)],
+                        created_at: new Date(Date.now() - Math.random() * 12 * 60 * 60 * 1000).toISOString(),
+                        profiles: {
+                            name: `${bot.name} (AI)`,
+                            avatar_url: bot.avatar_url
+                        }
+                    }));
+                    localStorage.setItem(storageKey, JSON.stringify(aiStatuses));
+                }
+                
+                combinedStatuses = [...aiStatuses, ...combinedStatuses].sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            }
+        }
+
+        setStatuses(combinedStatuses);
     };
 
     useEffect(() => {

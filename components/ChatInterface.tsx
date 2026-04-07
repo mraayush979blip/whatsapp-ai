@@ -252,6 +252,37 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         };
     }, [bot.id]);
 
+    // Realtime Sync for P2P messages
+    useEffect(() => {
+        const channel = supabase.channel(`room_${bot.id}`)
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `chatbot_id=eq.${bot.id}` }, (payload) => {
+                const newMsg = payload.new;
+                setMessages(prev => {
+                    // Ignore our own locally generated 'user' messages (already in state)
+                    if (newMsg.role === 'user') return prev;
+                    if (prev.some(m => m.id === newMsg.id || (m.role === 'bot' && m.content === newMsg.content && Math.abs(new Date().getTime() - new Date(newMsg.created_at).getTime()) < 3000))) {
+                        return prev;
+                    }
+                    try {
+                        audioRef.current?.play().catch(() => {});
+                    } catch(e) {}
+                    return [...prev, {
+                        id: newMsg.id,
+                        role: newMsg.role as "user" | "bot",
+                        content: newMsg.content,
+                        time: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        type: newMsg.type,
+                        media_url: newMsg.media_url
+                    }];
+                });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [bot.id]);
+
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -338,6 +369,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         pruneOldMessages().catch(console.error);
 
         // NOTE: we removed the static 600ms setTimeout for isTyping. Typing is now delayed until blue tick.
+
+        if (bot.role === "Real Person") return;
 
         try {
             // 3. Send full history to API for context
@@ -464,6 +497,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 type: "image",
                 media_url: publicUrl
             });
+
+            if (bot.role === "Real Person") return;
 
             // 4. Trigger AI Response about the photo
             setIsTyping(true);
@@ -604,6 +639,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 type: "audio",
                 media_url: publicUrl
             });
+
+            if (bot.role === "Real Person") return;
 
             // Trigger AI to respond to Voice Note. Send audio to STT first!
             setIsTyping(true);
