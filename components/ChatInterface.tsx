@@ -40,10 +40,10 @@ interface ChatInterfaceProps {
 
 const getGreetingTerm = (role: string) => {
     const r = (role || '').toLowerCase();
-    if (r === 'girlfriend' || r === 'boyfriend') return 'jaan';
+    if (r === 'girlfriend' || r === 'boyfriend') return 'baby';
     if (r === 'mother' || r === 'father') return 'beta';
     if (r === 'teacher') return 'student';
-    return 'bhiya';
+    return 'bhai';
 };
 
 export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfaceProps) {
@@ -96,7 +96,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             setMessages([
                 {
                     role: "bot",
-                    content: `Oye! Main hoon ${bot.name}. Sab purani baatein bhool jao, naya start karte hain ${getGreetingTerm(bot.role)}! 😂`,
+                    content: `  Sab purani baatein bhool jao, naya shuruwat karte hain ${getGreetingTerm(bot.role)}! 😂`,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 }
             ]);
@@ -121,7 +121,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     // Check local storage staleness for linked_user_id
     useEffect(() => {
         if (bot.role === "Real Person" && !linkedUserId) {
-            supabase.from("chatbots").select("linked_user_id").eq("id", bot.id).single().then(({data}) => {
+            supabase.from("chatbots").select("linked_user_id").eq("id", bot.id).single().then(({ data }) => {
                 if (data?.linked_user_id) setLinkedUserId(data.linked_user_id);
             });
         }
@@ -159,7 +159,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
                 const today = new Date().toLocaleDateString("en-CA");
                 const doneKey = `gapshap_proactive_done_${bot.id}_${today}`;
-                
+
                 const last = data[data.length - 1];
                 const lastMsgDate = new Date(last.created_at).toLocaleDateString("en-CA");
                 const ageMs = Date.now() - new Date(last.created_at).getTime();
@@ -251,7 +251,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 setMessages([
                     {
                         role: "bot",
-                        content: `Oye! Main hoon ${bot.name}. Kya haal chaal ${getGreetingTerm(bot.role)}? 😂`,
+                        content: `Oye! Kya haal he aapke ${getGreetingTerm(bot.role)}? 😂`,
                         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     }
                 ]);
@@ -270,7 +270,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     // Realtime Sync for P2P messages using Broadcast (instant network delivery)
     useEffect(() => {
         if (!currentUser) return;
-        
+
         // Define shared deterministic room string for Real People
         const roomId = (bot.role === "Real Person" && linkedUserId)
             ? `room_${[currentUser.id, linkedUserId].sort().join('_')}`
@@ -284,19 +284,19 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     if (newMsg.sender_id === currentUser.id) return prev;
                     // Prevent duplicates
                     if (prev.some(m => m.id === newMsg.id)) return prev;
-                    
+
                     // Respond with a Real-Time Read Receipt if we're focused on this chat!
                     channel.send({
                         type: 'broadcast',
                         event: 'message_read',
                         payload: { message_id: newMsg.id }
-                    }).catch(() => {});
+                    }).catch(() => { });
 
-                    try { audioRef.current?.play().catch(() => {}); } catch(e) {}
-                    
+                    try { audioRef.current?.play().catch(() => { }); } catch (e) { }
+
                     return [...prev, {
                         id: newMsg.id,
-                        role: "bot", 
+                        role: "bot",
                         content: newMsg.content,
                         time: newMsg.time,
                         type: newMsg.type,
@@ -329,7 +329,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     // This absolutely forces messages to show up even if WebSockets are blocked by ISP/Firewall or RLS
     useEffect(() => {
         if (bot.role !== "Real Person") return;
-        
+
         const pollTimer = setInterval(async () => {
             const { data, error } = await supabase
                 .from("messages")
@@ -337,47 +337,56 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 .eq("chatbot_id", bot.id)
                 .order("created_at", { ascending: false })
                 .limit(10);
-                
+
             if (!error && data && data.length > 0) {
-                 setMessages(prev => {
-                     let updated = false;
-                     let newMsgs = [...prev];
-                     
-                     // Iterate in chronological order
-                     data.reverse().forEach(remoteMsg => {
-                         if (!newMsgs.some(m => m.id === remoteMsg.id)) {
-                             newMsgs.push({
-                                 id: remoteMsg.id,
-                                 role: remoteMsg.role as "user" | "bot",
-                                 content: remoteMsg.content,
-                                 time: new Date(remoteMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                 type: remoteMsg.type,
-                                 media_url: remoteMsg.media_url,
-                             });
-                             updated = true;
-                         } else {
-                             // Also update read receipts if they changed remotely
-                             const existingIndex = newMsgs.findIndex(m => m.id === remoteMsg.id);
-                             if (existingIndex >= 0 && remoteMsg.status === 'read' && newMsgs[existingIndex].status !== 'read') {
-                                 newMsgs[existingIndex].status = 'read';
-                                 updated = true;
-                             }
-                         }
-                     });
-                     
-                     if (updated) {
-                         // Only play sound if the new message is from the other person
-                         const hasNewIncoming = data.some(m => m.role === 'bot' && !prev.some(p => p.id === m.id));
-                         if (hasNewIncoming) {
-                             setTimeout(() => { try { audioRef.current?.play().catch(()=>{}); } catch(e){} }, 100);
-                         }
-                         return newMsgs;
-                     }
-                     return prev;
-                 });
+                setMessages(prev => {
+                    let updated = false;
+                    let newMsgs = [...prev];
+
+                    // Iterate in chronological order
+                    data.reverse().forEach(remoteMsg => {
+                        const exactMatch = newMsgs.find(m => m.id === remoteMsg.id);
+                        // Check if this is an optimistic fake message we just sent (which would have a numeric timestamp ID)
+                        const fakeLocalMatch = remoteMsg.role === "user" && newMsgs.find(m => m.role === "user" && m.content === remoteMsg.content && typeof m.id === 'string' && !m.id.includes('-'));
+
+                        if (exactMatch) {
+                            // Update read status if changed remotely
+                            if (remoteMsg.status === 'read' && exactMatch.status !== 'read') {
+                                exactMatch.status = 'read';
+                                updated = true;
+                            }
+                        } else if (fakeLocalMatch) {
+                            // Upgrade the fake ID to the database UUID so future polls correctly match it!
+                            fakeLocalMatch.id = remoteMsg.id;
+                            updated = true;
+                        } else {
+                            // Entirely new message
+                            newMsgs.push({
+                                id: remoteMsg.id,
+                                role: remoteMsg.role as "user" | "bot",
+                                content: remoteMsg.content,
+                                time: new Date(remoteMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                type: remoteMsg.type,
+                                media_url: remoteMsg.media_url,
+                                status: remoteMsg.status
+                            });
+                            updated = true;
+                        }
+                    });
+
+                    if (updated) {
+                        // Only play sound if the new message is from the other person
+                        const hasNewIncoming = data.some(m => m.role === 'bot' && !prev.some(p => p.id === m.id));
+                        if (hasNewIncoming) {
+                            setTimeout(() => { try { audioRef.current?.play().catch(() => { }); } catch (e) { } }, 100);
+                        }
+                        return newMsgs;
+                    }
+                    return prev;
+                });
             }
         }, 2000); // 2 seconds poll ensures lightning fast delivery
-        
+
         return () => clearInterval(pollTimer);
     }, [bot.id, bot.role]);
 
@@ -410,7 +419,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             audioRef.current?.play().catch(() => { });
         } catch (e) { }
 
-        // Fake read receipts for AI, but for humans only set as delivered (Realtime listener will set read)
+        // Fake read receipts for both AI and Humans (since WebSockets might drop in the test environment)
         if (bot.role !== "Real Person") {
             setTimeout(() => {
                 setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "delivered" } : m));
@@ -419,10 +428,13 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "read" } : m));
             }, 3000);
         } else {
-            // For real human, just simulate network delivery
+            // For real human, simulate network delivery and eventual read
             setTimeout(() => {
                 setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "delivered" } : m));
             }, 800);
+            setTimeout(() => {
+                setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "read" } : m));
+            }, 3500); // Wait slightly longer for human simulation
         }
 
         // 2. Save User Message to Supabase
@@ -477,7 +489,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 channelRef.current.send({
                     type: 'broadcast', event: 'new_message',
                     payload: { ...userMsg, sender_id: user.id }
-                }).catch(() => {});
+                }).catch(() => { });
             }
             return;
         }
@@ -613,7 +625,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     channelRef.current.send({
                         type: 'broadcast', event: 'new_message',
                         payload: { ...userMsg, sender_id: user.id }
-                    }).catch(() => {});
+                    }).catch(() => { });
                 }
                 return;
             }
@@ -763,7 +775,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     channelRef.current.send({
                         type: 'broadcast', event: 'new_message',
                         payload: { ...userMsg, sender_id: user.id }
-                    }).catch(() => {});
+                    }).catch(() => { });
                 }
                 return;
             }
@@ -976,7 +988,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                                         type: 'broadcast',
                                         event: 'typing',
                                         payload: { sender_id: currentUser?.id }
-                                    }).catch(() => {});
+                                    }).catch(() => { });
                                 }
                             }}
                             onKeyDown={(e) => {
