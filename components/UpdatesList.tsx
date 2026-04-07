@@ -1,33 +1,84 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Camera, Search, MoreVertical, CircleDot } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 
-interface ChatBot {
-    id: string;
-    name: string;
-    avatar_url: string;
-}
-
 export default function UpdatesList() {
-    const [bots, setBots] = useState<ChatBot[]>([]);
+    const [statuses, setStatuses] = useState<any[]>([]);
     const [user, setUser] = useState<any>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const fetchData = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        // Fetch last 24h statuses
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const { data } = await supabase
+            .from("statuses")
+            .select("*, profiles(name, avatar_url)")
+            .gte("created_at", yesterday.toISOString())
+            .order("created_at", { ascending: false });
+            
+        setStatuses(data || []);
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
-
-            const { data } = await supabase
-                .from("chatbots")
-                .select("id, name, avatar_url")
-                .limit(5);
-            setBots(data || []);
-        };
         fetchData();
     }, []);
+
+    const handleUploadStatus = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("File size too large (max 10MB)!");
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not logged in");
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `${user.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('status_images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('status_images')
+                .getPublicUrl(filePath);
+
+            const caption = prompt("Write a caption for your status:") || "";
+
+            const { error: insertError } = await supabase.from("statuses").insert({
+                user_id: user.id,
+                image_url: publicUrl,
+                caption
+            });
+
+            if (insertError) throw insertError;
+
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to upload status.");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-white md:bg-[#111b21] overflow-y-auto no-scrollbar">
@@ -51,14 +102,14 @@ export default function UpdatesList() {
                 {/* Status Section */}
                 <section>
                     <h2 className="text-[#008069] md:text-[#e9edef] font-bold text-lg mb-4">Status</h2>
-                    <div className="flex items-center space-x-4 mb-6">
+                    <div className="flex items-center space-x-4 mb-6 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                         <div className="relative">
                             <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200 p-0.5 border-2 border-dashed border-gray-400">
                                 {user && (
                                     <img 
                                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} 
                                         alt="My Status" 
-                                        className="w-full h-full object-cover rounded-full"
+                                        className={`w-full h-full object-cover rounded-full ${isUploading ? 'opacity-50 animate-pulse' : ''}`}
                                     />
                                 )}
                             </div>
@@ -68,24 +119,35 @@ export default function UpdatesList() {
                         </div>
                         <div>
                             <p className="font-bold text-[#111b21] md:text-[#e9edef]">My status</p>
-                            <p className="text-sm text-gray-500 md:text-[#8696a0]">Tap to add status update</p>
+                            <p className="text-sm text-gray-500 md:text-[#8696a0]">{isUploading ? "Uploading..." : "Tap to add status update"}</p>
                         </div>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleUploadStatus}
+                        />
                     </div>
 
                     <div className="space-y-4">
                         <p className="text-xs font-semibold text-gray-500 md:text-[#8696a0] uppercase tracking-wider">Recent updates</p>
-                        {bots.map((bot) => (
+                        {statuses.map((status) => (
                             <motion.div 
-                                key={bot.id}
+                                key={status.id}
                                 whileTap={{ scale: 0.98 }}
+                                onClick={() => window.open(status.image_url, '_blank')}
                                 className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 md:hover:bg-[#202c33] -mx-4 px-4 py-2 transition-colors"
                             >
                                 <div className="w-14 h-14 rounded-full p-0.5 border-2 border-[#00a884] overflow-hidden">
-                                    <img src={bot.avatar_url} alt={bot.name} className="w-full h-full object-cover rounded-full" />
+                                    <img src={status.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${status.user_id}`} alt={status.profiles?.name || 'User'} className="w-full h-full object-cover rounded-full" />
                                 </div>
                                 <div className="flex-1 border-b border-gray-100 md:border-[#202c33] pb-2">
-                                    <p className="font-bold text-[#111b21] md:text-[#e9edef]">{bot.name}</p>
-                                    <p className="text-sm text-gray-500 md:text-[#8696a0]">{Math.floor(Math.random() * 59) + 1} minutes ago</p>
+                                    <p className="font-bold text-[#111b21] md:text-[#e9edef]">{status.profiles?.name || 'Unknown User'}</p>
+                                    <p className="text-sm text-gray-500 md:text-[#8696a0]">
+                                        {new Date(status.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {status.caption ? ` • ${status.caption}` : ''}
+                                    </p>
                                 </div>
                             </motion.div>
                         ))}

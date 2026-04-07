@@ -26,20 +26,7 @@ export default function CreateBotModal({ onClose, onCreated, userId }: CreateBot
 
         setLoading(true);
         try {
-            // Check existing bots count
-            const { count, error: countError } = await supabase
-                .from("chatbots")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", userId);
 
-            if (countError) throw countError;
-
-            if (count !== null && count >= 4) {
-                const upgrade = confirm("Bhiya, limit poori ho gayi! 😂 4 se zyada dost banane ke liye Premium chahiye. Developer Aayush ko mail karein?");
-                if (upgrade) window.open("mailto:mraayush979@gmail.com?subject=Premium Upgrade Request: GapShap AI");
-                setLoading(false);
-                return;
-            }
 
             const { error } = await supabase.from("chatbots").insert({
                 user_id: userId,
