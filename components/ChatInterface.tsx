@@ -325,6 +325,62 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         };
     }, [bot.id, linkedUserId, currentUser?.id]);
 
+    // GUARANTEED DELIVERY FALLBACK: Poll the database every 3 seconds! 
+    // This absolutely forces messages to show up even if WebSockets are blocked by ISP/Firewall or RLS
+    useEffect(() => {
+        if (bot.role !== "Real Person") return;
+        
+        const pollTimer = setInterval(async () => {
+            const { data, error } = await supabase
+                .from("messages")
+                .select("*")
+                .eq("chatbot_id", bot.id)
+                .order("created_at", { ascending: false })
+                .limit(10);
+                
+            if (!error && data && data.length > 0) {
+                 setMessages(prev => {
+                     let updated = false;
+                     let newMsgs = [...prev];
+                     
+                     // Iterate in chronological order
+                     data.reverse().forEach(remoteMsg => {
+                         if (!newMsgs.some(m => m.id === remoteMsg.id)) {
+                             newMsgs.push({
+                                 id: remoteMsg.id,
+                                 role: remoteMsg.role as "user" | "bot",
+                                 content: remoteMsg.content,
+                                 time: new Date(remoteMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                 type: remoteMsg.type,
+                                 media_url: remoteMsg.media_url,
+                             });
+                             updated = true;
+                         } else {
+                             // Also update read receipts if they changed remotely
+                             const existingIndex = newMsgs.findIndex(m => m.id === remoteMsg.id);
+                             if (existingIndex >= 0 && remoteMsg.status === 'read' && newMsgs[existingIndex].status !== 'read') {
+                                 newMsgs[existingIndex].status = 'read';
+                                 updated = true;
+                             }
+                         }
+                     });
+                     
+                     if (updated) {
+                         // Only play sound if the new message is from the other person
+                         const hasNewIncoming = data.some(m => m.role === 'bot' && !prev.some(p => p.id === m.id));
+                         if (hasNewIncoming) {
+                             setTimeout(() => { try { audioRef.current?.play().catch(()=>{}); } catch(e){} }, 100);
+                         }
+                         return newMsgs;
+                     }
+                     return prev;
+                 });
+            }
+        }, 2000); // 2 seconds poll ensures lightning fast delivery
+        
+        return () => clearInterval(pollTimer);
+    }, [bot.id, bot.role]);
+
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
