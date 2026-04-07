@@ -49,6 +49,7 @@ const getGreetingTerm = (role: string) => {
 export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [linkedUserId, setLinkedUserId] = useState<string | undefined>(bot.linked_user_id);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -114,6 +115,15 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     useEffect(() => {
         audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
     }, []);
+
+    // Check local storage staleness for linked_user_id
+    useEffect(() => {
+        if (bot.role === "Real Person" && !linkedUserId) {
+            supabase.from("chatbots").select("linked_user_id").eq("id", bot.id).single().then(({data}) => {
+                if (data?.linked_user_id) setLinkedUserId(data.linked_user_id);
+            });
+        }
+    }, [bot.id, bot.role, linkedUserId]);
 
     // 1. Fetch Chat History from Supabase (+ optional once-daily proactive opener)
     useEffect(() => {
@@ -260,8 +270,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         if (!currentUser) return;
         
         // Define shared deterministic room string for Real People
-        const roomId = (bot.role === "Real Person" && bot.linked_user_id)
-            ? `room_${[currentUser.id, bot.linked_user_id].sort().join('_')}`
+        const roomId = (bot.role === "Real Person" && linkedUserId)
+            ? `room_${[currentUser.id, linkedUserId].sort().join('_')}`
             : `room_${bot.id}`;
 
         const channel = supabase.channel(roomId)
@@ -272,6 +282,14 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     if (newMsg.sender_id === currentUser.id) return prev;
                     // Prevent duplicates
                     if (prev.some(m => m.id === newMsg.id)) return prev;
+                    
+                    // Respond with a Real-Time Read Receipt if we're focused on this chat!
+                    channel.send({
+                        type: 'broadcast',
+                        event: 'message_read',
+                        payload: { message_id: newMsg.id }
+                    }).catch(() => {});
+
                     try { audioRef.current?.play().catch(() => {}); } catch(e) {}
                     
                     return [...prev, {
@@ -284,12 +302,17 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     }];
                 });
             })
+            .on("broadcast", { event: "message_read" }, (payload) => {
+                // If the other person saw our message, turn our ticks blue instantly!
+                const { message_id } = payload.payload;
+                setMessages(prev => prev.map(m => m.id === message_id ? { ...m, status: "read" } : m));
+            })
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [bot.id, bot.linked_user_id, currentUser?.id]);
+    }, [bot.id, linkedUserId, currentUser?.id]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -320,16 +343,20 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             audioRef.current?.play().catch(() => { });
         } catch (e) { }
 
-        // Start local read receipt tick simulation
-        // 1. Double tap (delivered)
-        setTimeout(() => {
-            setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "delivered" } : m));
-        }, 1500);
-
-        // 2. Blue tick (read)
-        setTimeout(() => {
-            setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "read" } : m));
-        }, 4500);
+        // Fake read receipts for AI, but for humans only set as delivered (Realtime listener will set read)
+        if (bot.role !== "Real Person") {
+            setTimeout(() => {
+                setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "delivered" } : m));
+            }, 1000);
+            setTimeout(() => {
+                setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "read" } : m));
+            }, 3000);
+        } else {
+            // For real human, just simulate network delivery
+            setTimeout(() => {
+                setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, status: "delivered" } : m));
+            }, 800);
+        }
 
         // 2. Save User Message to Supabase
         await supabase.from("messages").insert({
@@ -379,8 +406,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         // NOTE: we removed the static 600ms setTimeout for isTyping. Typing is now delayed until blue tick.
 
         if (bot.role === "Real Person") {
-            if (bot.linked_user_id) {
-                const sharedRoom = `room_${[user.id, bot.linked_user_id].sort().join('_')}`;
+            if (linkedUserId) {
+                const sharedRoom = `room_${[user.id, linkedUserId].sort().join('_')}`;
                 supabase.channel(sharedRoom).send({
                     type: 'broadcast', event: 'new_message',
                     payload: { ...userMsg, sender_id: user.id }
@@ -516,8 +543,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             });
 
             if (bot.role === "Real Person") {
-                if (bot.linked_user_id) {
-                    const sharedRoom = `room_${[user.id, bot.linked_user_id].sort().join('_')}`;
+                if (linkedUserId) {
+                    const sharedRoom = `room_${[user.id, linkedUserId].sort().join('_')}`;
                     supabase.channel(sharedRoom).send({
                         type: 'broadcast', event: 'new_message',
                         payload: { ...userMsg, sender_id: user.id }
@@ -667,8 +694,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             });
 
             if (bot.role === "Real Person") {
-                if (bot.linked_user_id) {
-                    const sharedRoom = `room_${[user.id, bot.linked_user_id].sort().join('_')}`;
+                if (linkedUserId) {
+                    const sharedRoom = `room_${[user.id, linkedUserId].sort().join('_')}`;
                     supabase.channel(sharedRoom).send({
                         type: 'broadcast', event: 'new_message',
                         payload: { ...userMsg, sender_id: user.id }
