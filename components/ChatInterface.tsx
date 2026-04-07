@@ -73,6 +73,8 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const proactiveInFlightRef = useRef(false);
     const proactiveScheduledRef = useRef(false);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const channelRef = useRef<any>(null);
 
     const handleClearChat = async () => {
         try {
@@ -307,10 +309,19 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 const { message_id } = payload.payload;
                 setMessages(prev => prev.map(m => m.id === message_id ? { ...m, status: "read" } : m));
             })
+            .on("broadcast", { event: "typing" }, (payload) => {
+                if (payload.payload.sender_id === currentUser.id) return;
+                setIsTyping(true);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2000);
+            })
             .subscribe();
+
+        channelRef.current = channel;
 
         return () => {
             supabase.removeChannel(channel);
+            channelRef.current = null;
         };
     }, [bot.id, linkedUserId, currentUser?.id]);
 
@@ -406,12 +417,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         // NOTE: we removed the static 600ms setTimeout for isTyping. Typing is now delayed until blue tick.
 
         if (bot.role === "Real Person") {
-            if (linkedUserId) {
-                const sharedRoom = `room_${[user.id, linkedUserId].sort().join('_')}`;
-                supabase.channel(sharedRoom).send({
+            if (linkedUserId && channelRef.current) {
+                channelRef.current.send({
                     type: 'broadcast', event: 'new_message',
                     payload: { ...userMsg, sender_id: user.id }
-                });
+                }).catch(() => {});
             }
             return;
         }
@@ -543,12 +553,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             });
 
             if (bot.role === "Real Person") {
-                if (linkedUserId) {
-                    const sharedRoom = `room_${[user.id, linkedUserId].sort().join('_')}`;
-                    supabase.channel(sharedRoom).send({
+                if (linkedUserId && channelRef.current) {
+                    channelRef.current.send({
                         type: 'broadcast', event: 'new_message',
                         payload: { ...userMsg, sender_id: user.id }
-                    });
+                    }).catch(() => {});
                 }
                 return;
             }
@@ -694,12 +703,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
             });
 
             if (bot.role === "Real Person") {
-                if (linkedUserId) {
-                    const sharedRoom = `room_${[user.id, linkedUserId].sort().join('_')}`;
-                    supabase.channel(sharedRoom).send({
+                if (linkedUserId && channelRef.current) {
+                    channelRef.current.send({
                         type: 'broadcast', event: 'new_message',
                         payload: { ...userMsg, sender_id: user.id }
-                    });
+                    }).catch(() => {});
                 }
                 return;
             }
@@ -905,7 +913,16 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     ) : (
                         <textarea
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            onChange={(e) => {
+                                setInput(e.target.value);
+                                if (bot.role === "Real Person" && channelRef.current) {
+                                    channelRef.current.send({
+                                        type: 'broadcast',
+                                        event: 'typing',
+                                        payload: { sender_id: currentUser?.id }
+                                    }).catch(() => {});
+                                }
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
