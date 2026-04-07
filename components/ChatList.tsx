@@ -16,6 +16,7 @@ interface ChatBot {
     avatar_url: string;
     specifications: string;
     mood_level: number;
+    linked_user_id?: string;
 }
 
 export default function ChatList({ onSelectChat, userId, selectedChatId, activeTab, onTabChange }: { onSelectChat: (bot: ChatBot) => void; userId: string; selectedChatId?: string; activeTab: string; onTabChange: (tab: any) => void }) {

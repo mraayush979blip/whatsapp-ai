@@ -32,6 +32,7 @@ interface ChatInterfaceProps {
         avatar_url: string;
         specifications: string;
         mood_level: number;
+        linked_user_id?: string;
     };
     onBack: () => void;
     onBotDeleted: () => void;
@@ -47,6 +48,7 @@ const getGreetingTerm = (role: string) => {
 
 export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
+    const [currentUser, setCurrentUser] = useState<any>(null);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -121,6 +123,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         const fetchHistory = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            setCurrentUser(user);
 
             const { data, error } = await supabase
                 .from("messages")
@@ -252,25 +255,30 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         };
     }, [bot.id]);
 
-    // Realtime Sync for P2P messages
+    // Realtime Sync for P2P messages using Broadcast (instant network delivery)
     useEffect(() => {
-        const channel = supabase.channel(`room_${bot.id}`)
-            .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `chatbot_id=eq.${bot.id}` }, (payload) => {
-                const newMsg = payload.new;
+        if (!currentUser) return;
+        
+        // Define shared deterministic room string for Real People
+        const roomId = (bot.role === "Real Person" && bot.linked_user_id)
+            ? `room_${[currentUser.id, bot.linked_user_id].sort().join('_')}`
+            : `room_${bot.id}`;
+
+        const channel = supabase.channel(roomId)
+            .on("broadcast", { event: "new_message" }, (payload) => {
+                const newMsg = payload.payload;
                 setMessages(prev => {
-                    // Ignore our own locally generated 'user' messages (already in state)
-                    if (newMsg.role === 'user') return prev;
-                    if (prev.some(m => m.id === newMsg.id || (m.role === 'bot' && m.content === newMsg.content && Math.abs(new Date().getTime() - new Date(newMsg.created_at).getTime()) < 3000))) {
-                        return prev;
-                    }
-                    try {
-                        audioRef.current?.play().catch(() => {});
-                    } catch(e) {}
+                    // Ignore our own broadcasted message
+                    if (newMsg.sender_id === currentUser.id) return prev;
+                    // Prevent duplicates
+                    if (prev.some(m => m.id === newMsg.id)) return prev;
+                    try { audioRef.current?.play().catch(() => {}); } catch(e) {}
+                    
                     return [...prev, {
                         id: newMsg.id,
-                        role: newMsg.role as "user" | "bot",
+                        role: "bot", 
                         content: newMsg.content,
-                        time: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        time: newMsg.time,
                         type: newMsg.type,
                         media_url: newMsg.media_url
                     }];
@@ -281,7 +289,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [bot.id]);
+    }, [bot.id, bot.linked_user_id, currentUser?.id]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -370,7 +378,16 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
         // NOTE: we removed the static 600ms setTimeout for isTyping. Typing is now delayed until blue tick.
 
-        if (bot.role === "Real Person") return;
+        if (bot.role === "Real Person") {
+            if (bot.linked_user_id) {
+                const sharedRoom = `room_${[user.id, bot.linked_user_id].sort().join('_')}`;
+                supabase.channel(sharedRoom).send({
+                    type: 'broadcast', event: 'new_message',
+                    payload: { ...userMsg, sender_id: user.id }
+                });
+            }
+            return;
+        }
 
         try {
             // 3. Send full history to API for context
@@ -498,7 +515,16 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 media_url: publicUrl
             });
 
-            if (bot.role === "Real Person") return;
+            if (bot.role === "Real Person") {
+                if (bot.linked_user_id) {
+                    const sharedRoom = `room_${[user.id, bot.linked_user_id].sort().join('_')}`;
+                    supabase.channel(sharedRoom).send({
+                        type: 'broadcast', event: 'new_message',
+                        payload: { ...userMsg, sender_id: user.id }
+                    });
+                }
+                return;
+            }
 
             // 4. Trigger AI Response about the photo
             setIsTyping(true);
@@ -640,7 +666,16 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 media_url: publicUrl
             });
 
-            if (bot.role === "Real Person") return;
+            if (bot.role === "Real Person") {
+                if (bot.linked_user_id) {
+                    const sharedRoom = `room_${[user.id, bot.linked_user_id].sort().join('_')}`;
+                    supabase.channel(sharedRoom).send({
+                        type: 'broadcast', event: 'new_message',
+                        payload: { ...userMsg, sender_id: user.id }
+                    });
+                }
+                return;
+            }
 
             // Trigger AI to respond to Voice Note. Send audio to STT first!
             setIsTyping(true);
