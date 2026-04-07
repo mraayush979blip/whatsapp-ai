@@ -56,7 +56,18 @@ export default function ChatList({ onSelectChat, userId, selectedChatId, activeT
 
     useEffect(() => {
         fetchBots();
-    }, []);
+
+        // Listen for new incoming chatbot connections automatically!
+        const channel = supabase.channel('chatbots_realtime')
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "chatbots", filter: `user_id=eq.${userId}` }, () => {
+                fetchBots();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userId]);
 
     return (
         <div className="flex flex-col h-full bg-white md:bg-[#111b21] relative" onClick={() => showMenu && setShowMenu(false)}>

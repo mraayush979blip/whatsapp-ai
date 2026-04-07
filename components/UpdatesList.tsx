@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Camera, Search, MoreVertical, CircleDot } from "lucide-react";
+import { Plus, Camera, Search, MoreVertical, CircleDot, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 
@@ -10,6 +10,58 @@ export default function UpdatesList() {
     const [user, setUser] = useState<any>(null);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Status Viewer States
+    const [activeStatusIndex, setActiveStatusIndex] = useState<number | null>(null);
+    const [progress, setProgress] = useState(0);
+
+    // Auto Advance Status Logic
+    useEffect(() => {
+        if (activeStatusIndex === null) {
+            setProgress(0);
+            return;
+        }
+
+        const duration = 5000; // 5 seconds per status
+        const intervalTime = 50;
+        const step = (intervalTime / duration) * 100;
+
+        const timer = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 100) {
+                    clearInterval(timer);
+                    setTimeout(() => {
+                        if (activeStatusIndex < statuses.length - 1) {
+                            setActiveStatusIndex(activeStatusIndex + 1);
+                            setProgress(0);
+                        } else {
+                            setActiveStatusIndex(null);
+                        }
+                    }, 0);
+                    return 100;
+                }
+                return prev + step;
+            });
+        }, intervalTime);
+
+        return () => clearInterval(timer);
+    }, [activeStatusIndex, statuses.length]);
+
+    const handleNextStatus = () => {
+        if (activeStatusIndex !== null && activeStatusIndex < statuses.length - 1) {
+            setActiveStatusIndex(activeStatusIndex + 1);
+            setProgress(0);
+        } else {
+            setActiveStatusIndex(null);
+        }
+    };
+
+    const handlePrevStatus = () => {
+        if (activeStatusIndex !== null && activeStatusIndex > 0) {
+            setActiveStatusIndex(activeStatusIndex - 1);
+            setProgress(0);
+        }
+    };
 
     const fetchData = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -176,11 +228,11 @@ export default function UpdatesList() {
 
                     <div className="space-y-4">
                         <p className="text-xs font-semibold text-gray-500 md:text-[#8696a0] uppercase tracking-wider">Recent updates</p>
-                        {statuses.map((status) => (
+                        {statuses.map((status, index) => (
                             <motion.div 
                                 key={status.id}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => window.open(status.image_url, '_blank')}
+                                onClick={() => { setActiveStatusIndex(index); setProgress(0); }}
                                 className="flex items-center space-x-4 cursor-pointer hover:bg-gray-50 md:hover:bg-[#202c33] -mx-4 px-4 py-2 transition-colors"
                             >
                                 <div className="w-14 h-14 rounded-full p-0.5 border-2 border-[#00a884] overflow-hidden">
@@ -225,6 +277,75 @@ export default function UpdatesList() {
                     </button>
                 </section>
             </div>
+
+            {/* Immersive Status Viewer Modal */}
+            {activeStatusIndex !== null && statuses[activeStatusIndex] && (
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="fixed inset-0 z-50 bg-black flex flex-col select-none"
+                >
+                    {/* Progress Bars */}
+                    <div className="absolute top-3 left-2 right-2 flex space-x-1 z-20">
+                        {statuses.map((_, i) => (
+                            <div key={i} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden shrink-0">
+                                {i === activeStatusIndex && (
+                                    <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+                                )}
+                                {i < activeStatusIndex && (
+                                    <div className="h-full bg-white w-full" />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Header */}
+                    <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-4 z-20">
+                        <div className="flex items-center space-x-3">
+                            <button onClick={() => setActiveStatusIndex(null)} className="text-white hover:bg-white/10 p-1 rounded-full transition">
+                                <ChevronLeft className="w-7 h-7" />
+                            </button>
+                            <img 
+                                src={statuses[activeStatusIndex].profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${statuses[activeStatusIndex].user_id}`} 
+                                className="w-10 h-10 rounded-full object-cover border border-white/20" 
+                                alt="avatar" 
+                            />
+                            <div>
+                                <p className="text-white font-bold text-[15px]">{statuses[activeStatusIndex].profiles?.name || 'Unknown User'}</p>
+                                <p className="text-white/70 text-[12px]">Today, {new Date(statuses[activeStatusIndex].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                        </div>
+                        <button className="text-white hover:bg-white/10 p-1.5 rounded-full transition">
+                            <MoreVertical className="w-5 h-5"/>
+                        </button>
+                    </div>
+
+                    {/* Image Viewer Area - Clicks handle navigation */}
+                    <div className="flex-1 flex items-center justify-center relative bg-[#111] overflow-hidden" 
+                        onClick={(e) => {
+                            const width = e.currentTarget.clientWidth;
+                            if (e.clientX < width * 0.3) handlePrevStatus();
+                            else handleNextStatus();
+                        }}
+                    >
+                        <img 
+                            src={statuses[activeStatusIndex].image_url} 
+                            alt="Status" 
+                            className="max-h-full max-w-full object-contain"
+                        />
+                    </div>
+
+                    {/* Caption Overlay */}
+                    {statuses[activeStatusIndex].caption && (
+                        <div className="absolute bottom-12 left-0 right-0 text-center px-6 z-20 pointer-events-none">
+                            <div className="bg-black/60 backdrop-blur-sm text-white px-5 py-2.5 rounded-2xl inline-block max-w-[90%] break-words">
+                                <p className="text-sm shadow-sm">{statuses[activeStatusIndex].caption}</p>
+                            </div>
+                        </div>
+                    )}
+                </motion.div>
+            )}
         </div>
     );
 }
