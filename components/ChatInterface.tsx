@@ -138,141 +138,146 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         let proactiveTimer: number | undefined;
 
         const fetchHistory = async () => {
-            setIsLoadingHistory(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            setCurrentUser(user);
+            try {
+                setIsLoadingHistory(true);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                setCurrentUser(user);
 
-            const { data, error } = await supabase
-                .from("messages")
-                .select("*")
-                .eq("chatbot_id", bot.id)
-                .order("created_at", { ascending: true });
+                const { data, error } = await supabase
+                    .from("messages")
+                    .select("*")
+                    .eq("chatbot_id", bot.id)
+                    .order("created_at", { ascending: true });
 
-            if (cancelled) return;
+                if (cancelled) return;
 
-            if (error) {
-                console.error("Error fetching history:", error);
-                return;
-            }
-
-            if (data && data.length > 0) {
-                setMessages(data.map(m => ({
-                    id: m.id,
-                    role: m.role as "user" | "bot",
-                    content: m.content,
-                    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    status: m.status
-                })));
-
-                const today = new Date().toLocaleDateString("en-CA");
-                const doneKey = `gapshap_proactive_done_${bot.id}_${today}`;
-
-                const last = data[data.length - 1];
-                const lastMsgDate = new Date(last.created_at).toLocaleDateString("en-CA");
-                const ageMs = Date.now() - new Date(last.created_at).getTime();
-                const twentyFourHours = 24 * 60 * 60 * 1000;
-                const thirtyMin = 30 * 60 * 1000;
-                const fourHours = 4 * 60 * 60 * 1000;
-
-                let shouldPoke = false;
-
-                // Disable proactive AI pokes for Real Person chats
-                if (bot.role !== "Real Person") {
-                    // 1. Daily Reset: If it's a new day AND we haven't poked yet today
-                    if (today !== lastMsgDate && !localStorage.getItem(doneKey)) {
-                        shouldPoke = true;
-                    }
-                    // 2. Silence Poke: If silent for more than 24 hours
-                    else if (ageMs > twentyFourHours) {
-                        shouldPoke = true;
-                    }
-                    // 3. Keep-alive (Original logic): If last was user AND 30min passed, or last was bot AND 4h passed
-                    else if (!localStorage.getItem(doneKey)) {
-                        if (last.role === "user" && ageMs > thirtyMin) shouldPoke = true;
-                        if (last.role === "bot" && ageMs > fourHours) shouldPoke = true;
-                    }
+                if (error) {
+                    console.error("Error fetching history:", error);
+                    return;
                 }
 
-                if (!shouldPoke) return;
-                if (proactiveScheduledRef.current) return;
-                proactiveScheduledRef.current = true;
-                proactiveInFlightRef.current = true;
+                if (data && data.length > 0) {
+                    setMessages(data.map(m => ({
+                        id: m.id,
+                        role: m.role as "user" | "bot",
+                        content: m.content,
+                        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        status: m.status
+                    })));
 
-                const jitter = 600 + Math.random() * 1400;
-                proactiveTimer = window.setTimeout(async () => {
-                    if (cancelled) {
-                        proactiveInFlightRef.current = false;
-                        proactiveScheduledRef.current = false;
-                        return;
-                    }
-                    try {
-                        setIsTyping(true);
-                        const history = data.map(m => ({
-                            role: m.role === "bot" ? "assistant" : "user",
-                            content: m.content
-                        }));
+                    const today = new Date().toLocaleDateString("en-CA");
+                    const doneKey = `gapshap_proactive_done_${bot.id}_${today}`;
 
-                        const res = await fetch("/api/chat", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                userInput: "",
-                                botName: bot.name,
-                                botRole: bot.role,
-                                botSpecifications: bot.specifications,
-                                mood_level: bot.mood_level,
-                                history,
-                                userProfile: readGapshapUserProfile(),
-                                ...clientChatContext(bot.role),
-                                isProactiveOpener: true,
-                            }),
-                        });
-                        const json = await res.json();
-                        const text = json.content as string | undefined;
-                        if (!text?.trim()) return;
+                    const last = data[data.length - 1];
+                    const lastMsgDate = new Date(last.created_at).toLocaleDateString("en-CA");
+                    const ageMs = Date.now() - new Date(last.created_at).getTime();
+                    const twentyFourHours = 24 * 60 * 60 * 1000;
+                    const thirtyMin = 30 * 60 * 1000;
+                    const fourHours = 4 * 60 * 60 * 1000;
 
-                        const typingDuration = Math.min(Math.max(text.length * 35, 1500), 5000);
-                        await new Promise(r => setTimeout(r, typingDuration));
-                        if (cancelled) return;
+                    let shouldPoke = false;
 
-                        const botMsg: Message = {
-                            id: Date.now().toString(),
-                            role: "bot",
-                            content: text,
-                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        };
-                        setMessages(prev => [...prev, botMsg]);
-                        if (typeof localStorage !== "undefined") localStorage.setItem(doneKey, "1");
-
-                        await supabase.from("messages").insert({
-                            chatbot_id: bot.id,
-                            user_id: user.id,
-                            role: "bot",
-                            content: text,
-                        });
-                    } catch (e) {
-                        console.error("Proactive opener failed:", e);
-                    } finally {
-                        if (!cancelled) setIsTyping(false);
-                        proactiveInFlightRef.current = false;
-                    }
-                }, jitter);
-            } else {
-                // For Real Person, don't show an automatic AI greeting
-                if (bot.role === "Real Person") {
-                    setMessages([]);
-                } else {
-                    setMessages([
-                        {
-                            role: "bot",
-                            content: `Oye! Kya haal he aapke ${getGreetingTerm(bot.role)}? 😂`,
-                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    // Disable proactive AI pokes for Real Person chats
+                    if (bot.role !== "Real Person") {
+                        // 1. Daily Reset: If it's a new day AND we haven't poked yet today
+                        if (today !== lastMsgDate && !localStorage.getItem(doneKey)) {
+                            shouldPoke = true;
                         }
-                    ]);
+                        // 2. Silence Poke: If silent for more than 24 hours
+                        else if (ageMs > twentyFourHours) {
+                            shouldPoke = true;
+                        }
+                        // 3. Keep-alive (Original logic): If last was user AND 30min passed, or last was bot AND 4h passed
+                        else if (!localStorage.getItem(doneKey)) {
+                            if (last.role === "user" && ageMs > thirtyMin) shouldPoke = true;
+                            if (last.role === "bot" && ageMs > fourHours) shouldPoke = true;
+                        }
+                    }
+
+                    if (!shouldPoke) return;
+                    if (proactiveScheduledRef.current) return;
+                    proactiveScheduledRef.current = true;
+                    proactiveInFlightRef.current = true;
+
+                    const jitter = 600 + Math.random() * 1400;
+                    proactiveTimer = window.setTimeout(async () => {
+                        if (cancelled) {
+                            proactiveInFlightRef.current = false;
+                            proactiveScheduledRef.current = false;
+                            return;
+                        }
+                        try {
+                            setIsTyping(true);
+                            const history = data.map(m => ({
+                                role: m.role === "bot" ? "assistant" : "user",
+                                content: m.content
+                            }));
+
+                            const res = await fetch("/api/chat", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    userInput: "",
+                                    botName: bot.name,
+                                    botRole: bot.role,
+                                    botSpecifications: bot.specifications,
+                                    mood_level: bot.mood_level,
+                                    history,
+                                    userProfile: readGapshapUserProfile(),
+                                    ...clientChatContext(bot.role),
+                                    isProactiveOpener: true,
+                                }),
+                            });
+                            const json = await res.json();
+                            const text = json.content as string | undefined;
+                            if (!text?.trim()) return;
+
+                            const typingDuration = Math.min(Math.max(text.length * 35, 1500), 5000);
+                            await new Promise(r => setTimeout(r, typingDuration));
+                            if (cancelled) return;
+
+                            const botMsg: Message = {
+                                id: Date.now().toString(),
+                                role: "bot",
+                                content: text,
+                                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            };
+                            setMessages(prev => [...prev, botMsg]);
+                            if (typeof localStorage !== "undefined") localStorage.setItem(doneKey, "1");
+
+                            await supabase.from("messages").insert({
+                                chatbot_id: bot.id,
+                                user_id: user.id,
+                                role: "bot",
+                                content: text,
+                            });
+                        } catch (e) {
+                            console.error("Proactive opener failed:", e);
+                        } finally {
+                            if (!cancelled) setIsTyping(false);
+                            proactiveInFlightRef.current = false;
+                        }
+                    }, jitter);
+                } else {
+                    // For Real Person, don't show an automatic AI greeting
+                    if (bot.role === "Real Person") {
+                        setMessages([]);
+                    } else {
+                        setMessages([
+                            {
+                                role: "bot",
+                                content: `Oye! Kya haal he aapke ${getGreetingTerm(bot.role)}? 😂`,
+                                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            }
+                        ]);
+                    }
                 }
+            } catch (err) {
+                console.error("Fetch error:", err);
+            } finally {
+                if (!cancelled) setIsLoadingHistory(false);
             }
-            setIsLoadingHistory(false);
         };
 
         fetchHistory();
