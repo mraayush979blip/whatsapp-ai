@@ -144,7 +144,7 @@ export default function Home() {
                             {activeTab === 'calls' ? (
                                 <CallList activeTab={activeTab} onTabChange={setActiveTab} />
                             ) : activeTab === 'status' ? (
-                                <UpdatesList />
+                                <UpdatesList activeTab={activeTab} onTabChange={setActiveTab} />
                             ) : (
                                 <ChatList userId={session.user.id} onSelectChat={(bot) => setSelectedChat(bot)} selectedChatId={selectedChat?.id} activeTab={activeTab} onTabChange={setActiveTab} />
                             )}

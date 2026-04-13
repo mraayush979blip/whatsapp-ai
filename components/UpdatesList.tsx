@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, Camera, Search, MoreVertical, CircleDot, ChevronLeft } from "lucide-react";
+import { Plus, Camera, Search, MoreVertical, CircleDot, ChevronLeft, MessageSquare, Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 
-export default function UpdatesList() {
+export default function UpdatesList({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: any) => void }) {
     const [statuses, setStatuses] = useState<any[]>([]);
     const [user, setUser] = useState<any>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -177,8 +177,9 @@ export default function UpdatesList() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white md:bg-[#111b21] overflow-y-auto no-scrollbar">
-            {/* Header */}
+        <div className="flex flex-col h-full bg-white md:bg-[#111b21]">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+                {/* Header */}
             <div className="bg-[#008069] md:bg-[#111b21] text-white md:text-[#e9edef] p-4 flex items-center justify-between sticky top-0 z-10 shadow-sm md:shadow-none">
                 <h1 className="text-xl font-bold md:text-2xl">Updates</h1>
                 <div className="flex items-center space-x-4 md:space-x-2">
@@ -278,74 +279,96 @@ export default function UpdatesList() {
                 </section>
             </div>
 
-            {/* Immersive Status Viewer Modal */}
-            {activeStatusIndex !== null && statuses[activeStatusIndex] && (
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="fixed inset-0 z-50 bg-black flex flex-col select-none"
-                >
-                    {/* Progress Bars */}
-                    <div className="absolute top-3 left-2 right-2 flex space-x-1 z-20">
-                        {statuses.map((_, i) => (
-                            <div key={i} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden shrink-0">
-                                {i === activeStatusIndex && (
-                                    <div className="h-full bg-white" style={{ width: `${progress}%` }} />
-                                )}
-                                {i < activeStatusIndex && (
-                                    <div className="h-full bg-white w-full" />
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Header */}
-                    <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-4 z-20">
-                        <div className="flex items-center space-x-3">
-                            <button onClick={() => setActiveStatusIndex(null)} className="text-white hover:bg-white/10 p-1 rounded-full transition">
-                                <ChevronLeft className="w-7 h-7" />
-                            </button>
-                            <img 
-                                src={statuses[activeStatusIndex].profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${statuses[activeStatusIndex].user_id}`} 
-                                className="w-10 h-10 rounded-full object-cover border border-white/20" 
-                                alt="avatar" 
-                            />
-                            <div>
-                                <p className="text-white font-bold text-[15px]">{statuses[activeStatusIndex].profiles?.name || 'Unknown User'}</p>
-                                <p className="text-white/70 text-[12px]">Today, {new Date(statuses[activeStatusIndex].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                            </div>
-                        </div>
-                        <button className="text-white hover:bg-white/10 p-1.5 rounded-full transition">
-                            <MoreVertical className="w-5 h-5"/>
-                        </button>
-                    </div>
-
-                    {/* Image Viewer Area - Clicks handle navigation */}
-                    <div className="flex-1 flex items-center justify-center relative bg-[#111] overflow-hidden" 
-                        onClick={(e) => {
-                            const width = e.currentTarget.clientWidth;
-                            if (e.clientX < width * 0.3) handlePrevStatus();
-                            else handleNextStatus();
-                        }}
+                {/* Immersive Status Viewer Modal */}
+                {activeStatusIndex !== null && statuses[activeStatusIndex] && (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="fixed inset-0 z-[100] bg-black flex flex-col select-none"
                     >
-                        <img 
-                            src={statuses[activeStatusIndex].image_url} 
-                            alt="Status" 
-                            className="max-h-full max-w-full object-contain"
-                        />
-                    </div>
-
-                    {/* Caption Overlay */}
-                    {statuses[activeStatusIndex].caption && (
-                        <div className="absolute bottom-12 left-0 right-0 text-center px-6 z-20 pointer-events-none">
-                            <div className="bg-black/60 backdrop-blur-sm text-white px-5 py-2.5 rounded-2xl inline-block max-w-[90%] break-words">
-                                <p className="text-sm shadow-sm">{statuses[activeStatusIndex].caption}</p>
-                            </div>
+                        {/* Progress Bars */}
+                        <div className="absolute top-3 left-2 right-2 flex space-x-1 z-20">
+                            {statuses.map((_, i) => (
+                                <div key={i} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden shrink-0">
+                                    {i === activeStatusIndex && (
+                                        <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+                                    )}
+                                    {i < activeStatusIndex && (
+                                        <div className="h-full bg-white w-full" />
+                                    )}
+                                </div>
+                            ))}
                         </div>
-                    )}
-                </motion.div>
-            )}
+
+                        {/* Header */}
+                        <div className="absolute top-6 left-0 right-0 flex items-center justify-between px-4 z-20">
+                            <div className="flex items-center space-x-3">
+                                <button onClick={() => setActiveStatusIndex(null)} className="text-white hover:bg-white/10 p-1 rounded-full transition">
+                                    <ChevronLeft className="w-7 h-7" />
+                                </button>
+                                <img 
+                                    src={statuses[activeStatusIndex].profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${statuses[activeStatusIndex].user_id}`} 
+                                    className="w-10 h-10 rounded-full object-cover border border-white/20" 
+                                    alt="avatar" 
+                                />
+                                <div>
+                                    <p className="text-white font-bold text-[15px]">{statuses[activeStatusIndex].profiles?.name || 'Unknown User'}</p>
+                                    <p className="text-white/70 text-[12px]">Today, {new Date(statuses[activeStatusIndex].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                            </div>
+                            <button className="text-white hover:bg-white/10 p-1.5 rounded-full transition">
+                                <MoreVertical className="w-5 h-5"/>
+                            </button>
+                        </div>
+
+                        {/* Image Viewer Area - Clicks handle navigation */}
+                        <div className="flex-1 flex items-center justify-center relative bg-[#111] overflow-hidden" 
+                            onClick={(e) => {
+                                const width = e.currentTarget.clientWidth;
+                                if (e.clientX < width * 0.3) handlePrevStatus();
+                                else handleNextStatus();
+                            }}
+                        >
+                            <img 
+                                src={statuses[activeStatusIndex].image_url} 
+                                alt="Status" 
+                                className="max-h-full max-w-full object-contain"
+                            />
+                        </div>
+
+                        {/* Caption Overlay */}
+                        {statuses[activeStatusIndex].caption && (
+                            <div className="absolute bottom-12 left-0 right-0 text-center px-6 z-20 pointer-events-none">
+                                <div className="bg-black/60 backdrop-blur-sm text-white px-5 py-2.5 rounded-2xl inline-block max-w-[90%] break-words">
+                                    <p className="text-sm shadow-sm">{statuses[activeStatusIndex].caption}</p>
+                                </div>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </div>
+            {/* WhatsApp Bottom Navigation Mockup (Mobile Only) */}
+            <div className="flex md:hidden w-full bg-white border-t border-gray-100 justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+                <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'chats' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('chats')}>
+                    <div className={`${activeTab === 'chats' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
+                        <MessageSquare className={`w-6 h-6 ${activeTab === 'chats' ? 'fill-current' : ''}`} />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Chats</span>
+                </div>
+                <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'status' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('status')}>
+                    <div className={`${activeTab === 'status' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
+                        <CircleDot className={`w-6 h-6 ${activeTab === 'status' ? 'fill-current' : ''}`} />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Updates</span>
+                </div>
+                <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'calls' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('calls')}>
+                    <div className={`${activeTab === 'calls' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
+                        <Phone className={`w-6 h-6 ${activeTab === 'calls' ? 'fill-current' : ''}`} />
+                    </div>
+                    <span className="text-[11px] font-semibold tracking-wide">Calls</span>
+                </div>
+            </div>
         </div>
     );
 }

@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 
 export default function CallList({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: any) => void }) {
     return (
-        <div className="flex flex-col h-full bg-white md:bg-[#111b21] relative">
-            {/* Header */}
+        <div className="flex flex-col h-full bg-white md:bg-[#111b21]">
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+                {/* Header */}
             <div className="bg-[#008069] md:bg-[#111b21] text-white md:text-[#e9edef] p-4 flex items-center justify-between shadow-md md:shadow-none">
                 <h1 className="text-xl font-bold tracking-tight md:text-2xl md:font-bold">Calls</h1>
                 <div className="flex items-center space-x-5 md:space-x-4">
@@ -34,17 +35,27 @@ export default function CallList({ activeTab, onTabChange }: { activeTab: string
                 </p>
             </div>
 
+                {/* Floating Action Button (Mobile) */}
+                <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="absolute bottom-[80px] md:bottom-6 right-4 md:right-6 w-[56px] h-[56px] bg-[#25D366] rounded-[16px] md:rounded-full flex items-center justify-center text-white shadow-xl z-20"
+                >
+                    <Plus className="w-7 h-7" />
+                </motion.button>
+            </div>
+
             {/* WhatsApp Bottom Navigation Mockup (Mobile Only) */}
-            <div className="flex md:hidden w-full bg-white border-t border-gray-100 justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] relative">
+            <div className="flex md:hidden w-full bg-white border-t border-gray-100 justify-around items-center pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
                 <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'chats' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('chats')}>
                     <div className={`${activeTab === 'chats' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
                         <MessageSquare className={`w-6 h-6 ${activeTab === 'chats' ? 'fill-current' : ''}`} />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Chats</span>
                 </div>
-                <div className="flex flex-col items-center flex-1 cursor-pointer text-[#54656f]">
-                    <div className="px-4 py-1 mb-1">
-                        <CircleDot className="w-6 h-6" />
+                <div className={`flex flex-col items-center flex-1 cursor-pointer ${activeTab === 'status' ? 'text-[#008069]' : 'text-[#54656f]'}`} onClick={() => onTabChange('status')}>
+                    <div className={`${activeTab === 'status' ? 'bg-[#D1EBFA]' : ''} px-4 py-1 rounded-full mb-1`}>
+                        <CircleDot className={`w-6 h-6 ${activeTab === 'status' ? 'fill-current' : ''}`} />
                     </div>
                     <span className="text-[11px] font-semibold tracking-wide">Updates</span>
                 </div>
@@ -55,15 +66,6 @@ export default function CallList({ activeTab, onTabChange }: { activeTab: string
                     <span className="text-[11px] font-semibold tracking-wide">Calls</span>
                 </div>
             </div>
-
-            {/* Floating Action Button (Mobile) */}
-            <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="absolute bottom-[80px] md:bottom-6 right-4 md:right-6 w-[56px] h-[56px] bg-[#25D366] rounded-[16px] md:rounded-full flex items-center justify-center text-white shadow-xl z-20"
-            >
-                <Plus className="w-7 h-7" />
-            </motion.button>
         </div>
     );
 }
