@@ -154,6 +154,7 @@ export default function Home() {
                         <div className={`flex-1 bg-white md:bg-[#222e35] h-full flex-col relative ${!selectedChat ? 'hidden md:flex' : 'flex'}`}>
                             {selectedChat ? (
                                 <ChatInterface
+                                    key={selectedChat.id}
                                     bot={selectedChat}
                                     onBack={() => setSelectedChat(null)}
                                     onBotDeleted={() => {

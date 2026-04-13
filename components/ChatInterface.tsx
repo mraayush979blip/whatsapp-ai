@@ -61,6 +61,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
     });
     const [devFeature, setDevFeature] = useState<{ isOpen: boolean, name: string }>({ isOpen: false, name: "" });
     const [isUploading, setIsUploading] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
     // Voice Notes state
     const [isRecordingVoiceNote, setIsRecordingVoiceNote] = useState(false);
@@ -137,6 +138,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
         let proactiveTimer: number | undefined;
 
         const fetchHistory = async () => {
+            setIsLoadingHistory(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             setCurrentUser(user);
@@ -270,6 +272,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     ]);
                 }
             }
+            setIsLoadingHistory(false);
         };
 
         fetchHistory();
@@ -976,9 +979,18 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     </span>
                 </div>
 
-                {messages.map((m, i) => (
-                    <MessageBubble key={m.id || i} message={m} isRealPerson={bot.role === "Real Person"} />
-                ))}
+                {isLoadingHistory ? (
+                    <div className="flex-1 flex items-center justify-center p-10">
+                        <div className="w-8 h-8 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin" />
+                        <span className="ml-3 text-[#8696a0] text-sm tracking-wide">Loading messages...</span>
+                    </div>
+                ) : (
+                    <>
+                        {messages.map((m, i) => (
+                            <MessageBubble key={m.id || i} message={m} isRealPerson={bot.role === "Real Person"} />
+                        ))}
+                    </>
+                )}
 
                 {isTyping && <TypingIndicator botName={bot.name} />}
             </div>
