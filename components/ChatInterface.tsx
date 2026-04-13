@@ -175,18 +175,21 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
                 let shouldPoke = false;
 
-                // 1. Daily Reset: If it's a new day AND we haven't poked yet today
-                if (today !== lastMsgDate && !localStorage.getItem(doneKey)) {
-                    shouldPoke = true;
-                }
-                // 2. Silence Poke: If silent for more than 24 hours
-                else if (ageMs > twentyFourHours) {
-                    shouldPoke = true;
-                }
-                // 3. Keep-alive (Original logic): If last was user AND 30min passed, or last was bot AND 4h passed
-                else if (!localStorage.getItem(doneKey)) {
-                    if (last.role === "user" && ageMs > thirtyMin) shouldPoke = true;
-                    if (last.role === "bot" && ageMs > fourHours) shouldPoke = true;
+                // Disable proactive AI pokes for Real Person chats
+                if (bot.role !== "Real Person") {
+                    // 1. Daily Reset: If it's a new day AND we haven't poked yet today
+                    if (today !== lastMsgDate && !localStorage.getItem(doneKey)) {
+                        shouldPoke = true;
+                    }
+                    // 2. Silence Poke: If silent for more than 24 hours
+                    else if (ageMs > twentyFourHours) {
+                        shouldPoke = true;
+                    }
+                    // 3. Keep-alive (Original logic): If last was user AND 30min passed, or last was bot AND 4h passed
+                    else if (!localStorage.getItem(doneKey)) {
+                        if (last.role === "user" && ageMs > thirtyMin) shouldPoke = true;
+                        if (last.role === "bot" && ageMs > fourHours) shouldPoke = true;
+                    }
                 }
 
                 if (!shouldPoke) return;
@@ -254,13 +257,18 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     }
                 }, jitter);
             } else {
-                setMessages([
-                    {
-                        role: "bot",
-                        content: `Oye! Kya haal he aapke ${getGreetingTerm(bot.role)}? 😂`,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    }
-                ]);
+                // For Real Person, don't show an automatic AI greeting
+                if (bot.role === "Real Person") {
+                    setMessages([]);
+                } else {
+                    setMessages([
+                        {
+                            role: "bot",
+                            content: `Oye! Kya haal he aapke ${getGreetingTerm(bot.role)}? 😂`,
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        }
+                    ]);
+                }
             }
         };
 
