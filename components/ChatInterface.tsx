@@ -156,9 +156,11 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
 
             if (data && data.length > 0) {
                 setMessages(data.map(m => ({
+                    id: m.id,
                     role: m.role as "user" | "bot",
                     content: m.content,
-                    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    status: m.status
                 })));
 
                 const today = new Date().toLocaleDateString("en-CA");
@@ -350,8 +352,14 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                     // Iterate in chronological order
                     data.reverse().forEach(remoteMsg => {
                         const exactMatch = newMsgs.find(m => m.id === remoteMsg.id);
-                        // Check if this is an optimistic fake message we just sent (which would have a numeric timestamp ID)
-                        const fakeLocalMatch = remoteMsg.role === "user" && newMsgs.find(m => m.role === "user" && m.content === remoteMsg.content && typeof m.id === 'string' && !m.id.includes('-'));
+                        // Check if this is an optimistic fake message (which would have a numeric timestamp ID)
+                        // This applies to both 'user' messages we sent AND 'bot' messages received via broadcast
+                        const fakeLocalMatch = newMsgs.find(m => 
+                            m.role === remoteMsg.role && 
+                            m.content === remoteMsg.content && 
+                            typeof m.id === 'string' && 
+                            !m.id.includes('-')
+                        );
 
                         if (exactMatch) {
                             // Update read status if changed remotely
@@ -961,7 +969,7 @@ export default function ChatInterface({ bot, onBack, onBotDeleted }: ChatInterfa
                 </div>
 
                 {messages.map((m, i) => (
-                    <MessageBubble key={i} message={m} isRealPerson={bot.role === "Real Person"} />
+                    <MessageBubble key={m.id || i} message={m} isRealPerson={bot.role === "Real Person"} />
                 ))}
 
                 {isTyping && <TypingIndicator botName={bot.name} />}
