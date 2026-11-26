@@ -1,0 +1,42 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Runs every 3 days at 09:00 UTC to prevent Supabase free-tier auto-pausing (7-day limit)
+    - cron: "0 9 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    name: Ping Supabase REST API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Supabase database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Error: Missing Supabase secrets."
+            echo "Please add SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) in GitHub Repository Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+          BASE_URL="${SUPABASE_URL%/}"
+          HTTP_STATUS=$(curl -sS -o /tmp/supabase_response.txt -w "%{http_code}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${BASE_URL}/rest/v1/profiles?select=id&limit=1")
+
+          echo "Supabase HTTP status: ${HTTP_STATUS}"
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Keep-alive ping failed with status ${HTTP_STATUS}:"
+            cat /tmp/supabase_response.txt
+            exit 1
+          fi
+
+          echo "Supabase keep-alive ping succeeded."
+
