@@ -342,35 +342,59 @@ ${voiceBlock}
       { role: "user", content: effectiveUser },
     ];
 
-    // ── Groq call with key rotation ──────────────────────────────────────────
-    let chatCompletion;
-    let lastError;
+    // ── Groq call with model fallback + key rotation ─────────────────────────
+    const GROQ_CHAT_MODELS = [
+      { id: "qwen/qwen3.8-27b", reasoningEffort: undefined, maxTokens: isVoiceCall ? 80 : 160 },
+      { id: "openai/gpt-oss-120b", reasoningEffort: "low" as const, maxTokens: isVoiceCall ? 512 : 1024 },
+      { id: "openai/gpt-oss-20b", reasoningEffort: "low" as const, maxTokens: isVoiceCall ? 512 : 1024 },
+    ];
 
-    for (const client of groqClients) {
-      try {
-        chatCompletion = await client.chat.completions.create({
-          messages,
-          model: "llama-3.3-70b-versatile",
-          temperature: isVoiceCall ? 0.97 : 0.88,
-          max_tokens: isVoiceCall ? 80 : 160,
-          top_p: 0.95,
-          stream: false,
-          presence_penalty: 0.7,   // Penalise topic repetition more
-          frequency_penalty: 0.65, // Penalise word repetition
-        });
-        break;
-      } catch (err: any) {
-        console.error("Groq key attempt failed:", err?.message || err);
-        lastError = err;
+    let chatCompletion;
+    let lastError: unknown;
+
+    outer: for (const modelConfig of GROQ_CHAT_MODELS) {
+      for (const client of groqClients) {
+        try {
+          const completion = await client.chat.completions.create({
+            messages,
+            model: modelConfig.id,
+            temperature: isVoiceCall ? 0.97 : 0.88,
+            max_completion_tokens: modelConfig.maxTokens,
+            top_p: 0.95,
+            stream: false,
+            presence_penalty: 0.7,   // Penalise topic repetition more
+            frequency_penalty: 0.65, // Penalise word repetition
+            ...(modelConfig.reasoningEffort ? { reasoning_effort: modelConfig.reasoningEffort } : {}),
+          });
+
+          const text = completion.choices[0]?.message?.content?.trim();
+          if (text) {
+            chatCompletion = completion;
+            break outer;
+          }
+
+          lastError = new Error(`Empty completion from model ${modelConfig.id}`);
+        } catch (err: any) {
+          const msg = err?.message || String(err);
+          console.error(`Groq attempt failed (${modelConfig.id}):`, msg);
+          lastError = err;
+
+          // If the model itself isn't available/found, skip remaining keys for this model
+          if (err?.status === 404 || /model_not_found|does not exist|decommissioned/i.test(msg)) {
+            break;
+          }
+        }
       }
     }
 
     if (!chatCompletion) {
-      throw lastError || new Error("All Groq API keys failed or rate limits exceeded.");
+      throw lastError || new Error("All Groq API keys/models failed or rate limits exceeded.");
     }
 
     let responseText =
-      chatCompletion.choices[0]?.message?.content || "yaar kuch error aa gaya, ek second";
+      (chatCompletion.choices[0]?.message?.content || "yaar kuch error aa gaya, ek second")
+        .replace(/<think>[\s\S]*?<\/think>/gi, "")
+        .trim() || "yaar kuch error aa gaya, ek second";
 
     // ── Refusal/AI-detection diversion (role-aware) ──────────────────────────
     const isRefusal =
